@@ -2,44 +2,44 @@ name: Auto Parse Store Prices
 
 on:
   push:
-  schedule:
-    - cron: '0 3 * * *' # Каждую ночь обновляет все цены
-  issues:
-    types: [opened]     # МГНОВЕННО запускает парсер, когда прилетает новый поисковый запрос!
-  workflow_dispatch:    # Позволяет запустить вручную и сразу вписать новый товар с телефона
-    inputs:
-      new_query:
-        description: 'Добавить новые товары в парсер (через запятую):'
-        required: false
-        default: ''
-
-permissions:
-  contents: write
-  issues: write
-
-jobs:
-  parse:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Скачиваем репозиторий
-        uses: actions/checkout@v4
-
-      - name: Устанавливаем Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Запускаем самообучающийся парсер
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          NEW_USER_QUERY: ${{ github.event.inputs.new_query }}
-        run: python parser.py
-
-      - name: Сохраняем свежую базу в репозиторий
-        run: |
-          git config --global user.name "SmetaMAX Price Bot"
-          git config --global user.email "bot@smetamax.local"
-          git add prices.json user_queries.json
+    schedule:
+      - cron: '0 3 * * *' # Каждую ночь обновляет все цены
+    issues:
+      types: [opened]     # МГНОВЕННО запускает парсер, когда прилетает новый поисковый запрос!
+    workflow_dispatch:    # Позволяет запустить вручную и сразу вписать новый товар с телефона
+      inputs:
+        new_query:
+          description: 'Добавить новые товары в парсер (через запятую):'
+          required: false
+          default: ''
+  
+  permissions:
+    contents: write
+    issues: write
+  
+  jobs:
+    parse:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Скачиваем репозиторий
+          uses: actions/checkout@v4
+  
+        - name: Устанавливаем Python
+          uses: actions/setup-python@v5
+          with:
+            python-version: '3.11'
+  
+        - name: Запускаем самообучающийся парсер
+          env:
+            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            GITHUB_REPOSITORY: ${{ github.repository }}
+            NEW_USER_QUERY: ${{ github.event.inputs.new_query }}
+          run: python parser.py
+  
+        - name: Сохраняем свежую базу в репозиторий
+          run: |
+            git config --global user.name "SmetaMAX Price Bot"
+            git config --global user.email "bot@smetamax.local"
+            git add prices.json user_queries.json
           git diff --staged --quiet || git commit -m "Автопополнение базы цен по запросам пользователей"
           git push

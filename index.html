@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>СметаМАХ — Быстрые сметы</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Библиотека для создания PDF прямо на телефоне -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen pb-32 font-sans select-none">
+
+  <!-- Шапка -->
+  <header class="sticky top-0 z-20 bg-slate-800/95 backdrop-blur border-b border-slate-700 px-4 py-3 flex justify-between items-center shadow-lg">
+    <div>
+      <h1 class="text-lg font-bold text-blue-400">⚡ СметаМАХ</h1>
+      <p class="text-xs text-slate-400" id="items-count">0 позиций</p>
+    </div>
+    <div class="text-right">
+      <div class="text-xs text-slate-400">Итого к оплате:</div>
+      <div class="text-xl font-extrabold text-emerald-400" id="grand-total">0 ₽</div>
+    </div>
+  </header>
+
+  <main class="p-4 space-y-4 max-w-lg mx-auto">
+
+    <!-- Данные объекта и мастера -->
+    <section class="bg-slate-800 p-3 rounded-xl border border-slate-700 space-y-2">
+      <div class="grid grid-cols-2 gap-2">
+        <input id="master_name" type="text" placeholder="Ваше имя / Бригада" oninput="saveMeta()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm w-full outline-none focus:border-blue-500">
+        <input id="master_phone" type="tel" placeholder="Ваш телефон" oninput="saveMeta()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm w-full outline-none focus:border-blue-500">
+      </div>
+      <div class="grid grid-cols-2 gap-2">
+        <input id="client_name" type="text" placeholder="Имя заказчика" oninput="saveMeta()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm w-full outline-none focus:border-blue-500">
+        <input id="object_address" type="text" placeholder="Адрес объекта" oninput="saveMeta()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm w-full outline-none focus:border-blue-500">
+      </div>
+      <div class="grid grid-cols-2 gap-2 pt-1">
+        <label class="text-xs text-slate-400 flex items-center justify-between bg-slate-900 px-3 py-1.5 rounded-lg">
+          <span>Расходники (%):</span>
+          <input id="consumables_percent" type="number" value="5" oninput="recalc()" class="w-12 bg-transparent text-right font-bold text-slate-200 outline-none">
+        </label>
+        <label class="text-xs text-slate-400 flex items-center justify-between bg-slate-900 px-3 py-1.5 rounded-lg">
+          <span>Скидка (%):</span>
+          <input id="discount_percent" type="number" value="0" oninput="recalc()" class="w-12 bg-transparent text-right font-bold text-emerald-400 outline-none">
+        </label>
+      </div>
+    </section>
+
+    <!-- Шаблоны -->
+    <section>
+      <div class="flex justify-between items-center mb-1.5">
+        <span class="text-xs text-slate-400 font-medium">Быстрые шаблоны (нажми, чтобы добавить):</span>
+        <button onclick="clearAll()" class="text-xs text-rose-400 underline">Очистить всё</button>
+      </div>
+      <div class="flex gap-2 overflow-x-auto pb-1">
+        <button onclick="applyPreset('shield')" class="shrink-0 bg-slate-800 border border-slate-600 px-3 py-2 rounded-lg text-xs font-medium active:scale-95">⚡ Щит в двушку</button>
+        <button onclick="applyPreset('point')" class="shrink-0 bg-slate-800 border border-slate-600 px-3 py-2 rounded-lg text-xs font-medium active:scale-95">🛠 Черновая точка</button>
+        <button onclick="applyPreset('cable')" class="shrink-0 bg-slate-800 border border-slate-600 px-3 py-2 rounded-lg text-xs font-medium active:scale-95">🔌 Кабельная трасса</button>
+      </div>
+    </section>
+
+    <!-- Быстрый ввод одной строкой -->
+    <section class="bg-blue-950/40 border border-blue-800/60 p-3 rounded-xl">
+      <div class="text-xs text-blue-300 mb-1.5 font-medium">Быстрый ввод (Название Кол-во Цена):</div>
+      <div class="flex gap-2">
+        <input id="quick-input" type="text" placeholder="Напр: Автомат 16А 8 шт 350" 
+               class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm flex-1 outline-none focus:border-blue-400">
+        <button onclick="parseQuickLine()" class="bg-blue-600 active:scale-95 px-4 py-2 rounded-lg font-bold text-sm">+</button>
+      </div>
+    </section>
+
+    <!-- Список позиций на экране -->
+    <section class="space-y-2" id="items-list"></section>
+
+  </main>
+
+  <!-- Скрытый печатный бланк для красивого PDF -->
+  <div class="hidden">
+    <div id="pdf-template" class="p-6 bg-white text-black font-sans text-xs"></div>
+  </div>
+
+  <!-- Нижние кнопки -->
+  <footer class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-3 z-20">
+    <div class="max-w-lg mx-auto grid grid-cols-2 gap-3">
+      <button onclick="generatePDF('supply')" class="bg-slate-700 active:scale-95 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-1">
+        🛒 В закупку (PDF)
+      </button>
+      <button onclick="generatePDF('client')" class="bg-emerald-600 active:scale-95 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1 shadow-lg shadow-emerald-900/50">
+        📄 Смета клиенту
+      </button>
+    </div>
+  </footer>
+
+  <script>
+    const PRESETS = {
+      shield: [
+        {name: "Сборка и расключение щита (до 36 мод.)", category: "work", unit: "усл.", qty: 1, price: 12000},
+        {name: "Вводной автомат 2P 63A", category: "material", unit: "шт.", qty: 1, price: 850},
+        {name: "Реле напряжения 63А", category: "material", unit: "шт.", qty: 1, price: 3800},
+        {name: "УЗО 2P 40A 30mA", category: "material", unit: "шт.", qty: 3, price: 2900},
+        {name: "Автомат 1P 16A (розетки)", category: "material", unit: "шт.", qty: 8, price: 320},
+        {name: "Автомат 1P 10A (свет)", category: "material", unit: "шт.", qty: 4, price: 320}
+      ],
+      point: [
+        {name: "Бурение подрозетника в бетоне", category: "work", unit: "шт.", qty: 1, price: 450},
+        {name: "Вмазка подрозетника", category: "work", unit: "шт.", qty: 1, price: 200},
+        {name: "Подрозетник глубокий 68х60", category: "material", unit: "шт.", qty: 1, price: 45}
+      ],
+      cable: [
+        {name: "Прокладка кабеля до 3х2.5", category: "work", unit: "м.п.", qty: 50, price: 90},
+        {name: "Кабель ВВГнг(А)-LS 3х2.5", category: "material", unit: "м.п.", qty: 50, price: 115},
+        {name: "Гофра ПВХ d20 с протяжкой", category: "material", unit: "м.п.", qty: 50, price: 28}
+      ]
+    };
+
+    let items = JSON.parse(localStorage.getItem("smeta_items") || "[]");
+
+    function init() {
+      const meta = JSON.parse(localStorage.getItem("smeta_meta") || "{}");
+      if(meta.master_name) document.getElementById("master_name").value = meta.master_name;
+      if(meta.master_phone) document.getElementById("master_phone").value = meta.master_phone;
+      if(meta.client_name) document.getElementById("client_name").value = meta.client_name;
+      if(meta.object_address) document.getElementById("object_address").value = meta.object_address;
+      renderItems();
+    }
+
+    function saveMeta() {
+      localStorage.setItem("smeta_meta", JSON.stringify({
+        master_name: document.getElementById("master_name").value,
+        master_phone: document.getElementById("master_phone").value,
+        client_name: document.getElementById("client_name").value,
+        object_address: document.getElementById("object_address").value
+      }));
+    }
+
+    function applyPreset(key) {
+      PRESETS[key].forEach(i => items.push({...i}));
+      saveAndRender();
+    }
+
+    function clearAll() {
+      if(confirm("Очистить текущую смету?")) { items = []; saveAndRender(); }
+    }
+
+    function parseQuickLine() {
+      const input = document.getElementById("quick-input");
+      const text = input.value.trim();
+      if (!text) return;
+      const match = text.match(/^(.*?)\s+(\d+(?:[.,]\d+)?)\s*(шт|м|мп|м\.п\.|усл|компл|точк[аи])?\s*(?:по|х|x|\*)?\s*(\d+(?:[.,]\d+)?)$/i);
+      if (match) {
+        const name = match[1].trim();
+        const qty = parseFloat(match[2].replace(",", "."));
+        const unit = match[3] || "шт.";
+        const price = parseFloat(match[4].replace(",", "."));
+        const workWords = ["монтаж", "сборка", "установка", "прокладка", "штроб", "бурение", "расключение", "вмазка"];
+        const category = workWords.some(w => name.toLowerCase().includes(w)) ? "work" : "material";
+        items.push({name, category, unit, qty, price});
+        input.value = "";
+        saveAndRender();
+      } else {
+        alert("Напишите в формате: Название Кол-во Цена\nНапример: Автомат 16А 10 шт 350");
+      }
+    }
+
+    function changeQty(idx, delta) {
+      items[idx].qty = Math.max(0, Number((items[idx].qty + delta).toFixed(2)));
+      if (items[idx].qty === 0) items.splice(idx, 1);
+      saveAndRender();
+    }
+
+    function saveAndRender() {
+      localStorage.setItem("smeta_items", JSON.stringify(items));
+      renderItems();
+    }
+
+    function renderItems() {
+      const list = document.getElementById("items-list");
+      if (items.length === 0) {
+        list.innerHTML = `<div class="text-center text-slate-500 py-8 text-sm">Смета пуста. Нажмите на шаблон выше или введите строку.</div>`;
+        recalc();
+        return;
+      }
+      list.innerHTML = items.map((item, idx) => `
+        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex justify-between items-center gap-2">
+          <div class="flex-1 min-w-0">
+            <span class="text-[10px] uppercase px-1.5 py-0.5 rounded font-bold ${item.category === 'work' ? 'bg-amber-500/20 text-amber-300' : 'bg-blue-500/20 text-blue-300'}">
+              ${item.category === 'work' ? 'Работа' : 'Материал'}
+            </span>
+            <div class="text-sm font-medium truncate mt-1">${item.name}</div>
+            <div class="text-xs text-slate-400">${item.price} ₽ / ${item.unit} • <b class="text-slate-200">${(item.qty * item.price).toLocaleString()} ₽</b></div>
+          </div>
+          <div class="flex items-center gap-2 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">
+            <button onclick="changeQty(${idx}, -1)" class="w-7 h-7 rounded bg-slate-800 text-slate-300 font-bold">-</button>
+            <span class="text-sm font-bold w-8 text-center">${item.qty}</span>
+            <button onclick="changeQty(${idx}, 1)" class="w-7 h-7 rounded bg-slate-800 text-blue-400 font-bold">+</button>
+          </div>
+        </div>
+      `).join("");
+      recalc();
+    }
+
+    function recalc() {
+      let works = 0, mats = 0;
+      items.forEach(i => { if (i.category === "work") works += i.qty * i.price; else mats += i.qty * i.price; });
+      const consPct = parseFloat(document.getElementById("consumables_percent").value || 0);
+      const discPct = parseFloat(document.getElementById("discount_percent").value || 0);
+      const total = works + mats + (mats * consPct / 100) - (works * discPct / 100);
+      document.getElementById("grand-total").innerText = `${Math.round(total).toLocaleString()} ₽`;
+      document.getElementById("items-count").innerText = `${items.length} поз. (Раб: ${Math.round(works)} ₽ / Мат: ${Math.round(mats)} ₽)`;
+      return {works, mats, consPct, discPct, total};
+    }
+
+    function generatePDF(mode) {
+      if (items.length === 0) return alert("Добавьте позиции в смету!");
+      const sums = recalc();
+      const client = document.getElementById("client_name").value || "Заказчик";
+      const address = document.getElementById("object_address").value || "Не указан";
+      const master = document.getElementById("master_name").value || "Частный мастер";
+      const phone = document.getElementById("master_phone").value || "";
+      const date = new Date().toLocaleDateString("ru-RU");
+
+      const worksList = items.filter(i => i.category === "work");
+      const matsList = items.filter(i => i.category === "material");
+
+      const makeRows = (arr, showPrice) => arr.map((item, i) => `
+        <tr style="border-bottom: 1px solid #cbd5e1;">
+          <td style="padding: 6px; text-align:center;">${i+1}</td>
+          <td style="padding: 6px;">${item.name}</td>
+          <td style="padding: 6px; text-align:center;">${item.qty} ${item.unit}</td>
+          ${showPrice ? `<td style="padding: 6px; text-align:right;">${item.price.toLocaleString()} ₽</td>
+          <td style="padding: 6px; text-align:right; font-weight:bold;">${(item.qty*item.price).toLocaleString()} ₽</td>` : ''}
+        </tr>
+      `).join("");
+
+      const box = document.getElementById("pdf-template");
+      box.innerHTML = `
+        <div style="font-family: sans-serif; color: #0f172a;">
+          <h2 style="font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 8px;">
+            ${mode === 'supply' ? 'СПИСОК ЗАКУПКИ МАТЕРИАЛОВ' : 'СМЕТА НА ВЫПОЛНЕНИЕ РАБОТ'}
+          </h2>
+          <p style="font-size: 12px; margin-bottom: 4px;"><b>Дата:</b> ${date} | <b>Объект:</b> ${address}</p>
+          <p style="font-size: 12px; margin-bottom: 14px;"><b>Заказчик:</b> ${client} | <b>Исполнитель:</b> ${master} ${phone}</p>
+
+          ${mode === 'client' && worksList.length > 0 ? `
+            <h3 style="font-size: 14px; font-weight: bold; margin: 10px 0 4px;">1. Работы</h3>
+            <table style="width:100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px;">
+              <tr style="background:#e2e8f0; font-weight:bold;">
+                <th style="padding:6px; width:30px;">№</th><th style="padding:6px; text-align:left;">Наименование</th>
+                <th style="padding:6px; width:70px;">Кол-во</th><th style="padding:6px; width:70px; text-align:right;">Цена</th><th style="padding:6px; width:80px; text-align:right;">Сумма</th>
+              </tr>
+              ${makeRows(worksList, true)}
+            </table>
+          ` : ''}
+
+          ${matsList.length > 0 ? `
+            <h3 style="font-size: 14px; font-weight: bold; margin: 10px 0 4px;">${mode === 'client' ? '2. Материалы и оборудование' : 'Спецификация материалов'}</h3>
+            <table style="width:100%; border-collapse: collapse; font-size: 11px; margin-bottom: 12px;">
+              <tr style="background:#e2e8f0; font-weight:bold;">
+                <th style="padding:6px; width:30px;">№</th><th style="padding:6px; text-align:left;">Наименование</th>
+                <th style="padding:6px; width:80px;">Кол-во</th>
+                ${mode === 'client' ? '<th style="padding:6px; width:70px; text-align:right;">Цена</th><th style="padding:6px; width:80px; text-align:right;">Сумма</th>' : ''}
+              </tr>
+              ${makeRows(matsList, mode === 'client')}
+            </table>
+          ` : ''}
+
+          ${mode === 'client' ? `
+            <div style="text-align: right; font-size: 12px; margin-top: 10px;">
+              <div>Работы: <b>${Math.round(sums.works).toLocaleString()} ₽</b> | Материалы: <b>${Math.round(sums.mats).toLocaleString()} ₽</b></div>${sums.consPct > 0 ? `<div>Мелкие расходники (${sums.consPct}%): +${Math.round(sums.mats * sums.consPct / 100).toLocaleString()} ₽</div>` : ''}
+              ${sums.discPct > 0 ? `<div>Скидка на работы (${sums.discPct}%): -${Math.round(sums.works * sums.discPct / 100).toLocaleString()} ₽</div>` : ''}
+              <div style="font-size: 16px; font-weight: bold; margin-top: 6px;">ИТОГО К ОПЛАТЕ: ${Math.round(sums.total).toLocaleString()} ₽</div>
+            </div>
+          ` : ''}
+          <div style="margin-top: 25px; text-align: center; font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px;">
+            Сформировано в мини-приложении «СметаМАХ»
+          </div>
+        </div>
+      `;
+
+      html2pdf().set({
+        margin: 10,
+        filename: mode === 'supply' ? 'Zakupka.pdf' : 'Smeta.pdf',
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(box).save();
+    }
+
+    init();
+  </script>
+</body>
+</html>

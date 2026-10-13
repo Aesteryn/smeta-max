@@ -1,6 +1,7 @@
 name: Auto Parse Store Prices
 
 on:
+  push:
   schedule:
     - cron: '0 3 * * *' # Каждую ночь обновляет все цены
   issues:

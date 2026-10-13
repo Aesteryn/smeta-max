@@ -18,13 +18,13 @@
       background-attachment: fixed;
     }
     .glass {
-      background: rgba(15, 23, 42, 0.82);
+      background: rgba(15, 23, 42, 0.85);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid rgba(255, 255, 255, 0.08);
     }
     .glass-card {
-      background: linear-gradient(145deg, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.82));
+      background: linear-gradient(145deg, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.85));
       border: 1px solid rgba(255, 255, 255, 0.07);
       box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.4);
     }
@@ -69,42 +69,34 @@
     <!-- ПЕРЕКЛЮЧАТЕЛЬ ВКЛАДОК -->
     <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-900/90 border border-white/5 text-xs font-semibold">
       <button onclick="switchTab('editor')" id="tab-editor" class="py-2 rounded-lg bg-slate-800 text-cyan-400 shadow">⚡ Смета</button>
-      <button onclick="switchTab('catalog')" id="tab-catalog" class="py-2 rounded-lg text-slate-400">🏪 Мой прайс и База</button>
+      <button onclick="switchTab('scanner')" id="tab-scanner" class="py-2 rounded-lg text-slate-400">🌐 Веб-Сканер</button>
       <button onclick="switchTab('details')" id="tab-details" class="py-2 rounded-lg text-slate-400">⚙️ Реквизиты</button>
     </div>
 
     <!-- ВКЛАДКА 1: РЕДАКТОР СМЕТЫ -->
     <div id="view-editor" class="space-y-4">
 
-      <!-- ПОИСК + ЖИВОЙ ОНЛАЙН-ПАРСЕР + СВОЯ ПОЗИЦИЯ -->
+      <!-- ПОИСК + ПЕРЕХОД В ВЕБ-СКАНЕР САЙТОВ -->
       <section class="glass-card p-3.5 rounded-2xl neon-border transition relative">
         <div class="flex justify-between items-center mb-2">
           <span class="text-xs font-semibold text-cyan-300">
-            🔍 Поиск товара, парсинг цен или быстрый ввод
+            🔍 Быстрый поиск или захват с сайта магазина
           </span>
-          <button onclick="openCustomModal('')" class="text-[11px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-lg active:scale-95">
-            + Своя позиция
+          <button onclick="openWebScannerWithQuery()" class="text-[11px] font-bold text-cyan-300 bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-0.5 rounded-lg active:scale-95">
+            🌐 Найти на сайте →
           </button>
         </div>
 
         <div class="flex gap-2">
           <input id="smart-search" type="text" autocomplete="off"
-                 placeholder="Любой товар (напр: контактор 25А, вилка, ПВС)"
+                 placeholder="Товар, ссылка или: Автомат 16А 8 шт 350"
                  oninput="handleSearchInput(this.value)"
                  onkeydown="if(event.key==='Enter') parseQuickLine()"
                  class="bg-slate-950/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm flex-1 outline-none text-white placeholder-slate-500">
-          <button onclick="liveWebParse()" title="Спарсить живые цены из интернета" class="bg-slate-800 hover:bg-slate-700 border border-cyan-500/30 text-cyan-300 active:scale-95 px-3 rounded-xl font-bold text-xs flex items-center gap-1 shrink-0">
-            🌐 Парсер
-          </button>
-          <button onclick="parseQuickLine()" class="bg-gradient-to-r from-blue-600 to-cyan-500 active:scale-95 px-3.5 rounded-xl font-bold text-sm shadow-lg shadow-blue-600/30">+</button>
+          <button onclick="parseQuickLine()" class="bg-gradient-to-r from-blue-600 to-cyan-500 active:scale-95 px-4 rounded-xl font-bold text-sm shadow-lg shadow-blue-600/30">+</button>
         </div>
 
-        <!-- Индикатор живого парсинга -->
-        <div id="parser-status" class="hidden mt-2 text-xs text-cyan-300 flex items-center justify-between bg-cyan-950/40 border border-cyan-500/30 px-3 py-2 rounded-xl">
-          <span id="parser-status-text">⏳ Запрашиваем прайсы магазинов...</span>
-        </div>
-
-        <!-- Выпадающий список результатов -->
+        <!-- Выпадающий список автодополнения -->
         <div id="search-dropdown" class="hidden mt-2 max-h-80 overflow-y-auto rounded-xl bg-slate-950 border border-slate-700 divide-y divide-slate-800/80 shadow-2xl"></div>
       </section>
 
@@ -124,7 +116,7 @@
       <section class="flex items-center justify-between bg-emerald-950/30 border border-emerald-500/20 px-3.5 py-2.5 rounded-xl">
         <div class="text-xs">
           <span class="text-emerald-300 font-semibold">Сравнение цен магазинов РФ</span>
-          <p class="text-[11px] text-slate-400" id="savings-hint">ЭТМ • ВсеИнструменты • Лемана ПРО • Свои цены</p>
+          <p class="text-[11px] text-slate-400" id="savings-hint">ЭТМ • ВсеИнструменты • Лемана ПРО • Сайты</p>
         </div>
         <button onclick="optimizeBestPrices()" class="shrink-0 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition">
           📉 Мин. цены
@@ -136,23 +128,85 @@
 
     </div>
 
-    <!-- ВКЛАДКА 2: КАТАЛОГ И ЛИЧНЫЙ ПРАЙС -->
-    <div id="view-catalog" class="hidden space-y-3">
-      <div class="glass-card p-3 rounded-2xl space-y-2.5">
+    <!-- ВКЛАДКА 2: ЭКРАН ВСТРОЕННОГО ВЕБ-СКАНЕРА И ЗАХВАТА СО СТРАНИЦ САЙТОВ -->
+    <div id="view-scanner" class="hidden space-y-3">
+
+      <!-- БЛОК 1: ЖИВОЙ ПОИСК ПО САЙТАМ МАГАЗИНОВ С КНОПКОЙ "+" -->
+      <section class="glass-card p-3.5 rounded-2xl space-y-3 border border-cyan-500/30">
         <div class="flex justify-between items-center">
-          <span class="text-xs text-slate-400">Категории базы и вашего прайса:</span>
-          <button onclick="openCustomModal('')" class="text-xs font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-lg">+ Создать свою позицию</button>
+          <h3 class="text-sm font-bold text-cyan-300">🌐 Встроенный Веб-Сканер магазинов</h3>
+          <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-bold">Auto-Grabber</span>
         </div>
-        <div class="flex gap-1.5 overflow-x-auto pb-1">
-          <button onclick="renderCatalog('all')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-semibold shrink-0">Все</button>
-          <button onclick="renderCatalog('Мои позиции')" class="px-3 py-1.5 rounded-lg bg-emerald-900/60 text-emerald-300 border border-emerald-500/30 text-xs shrink-0">⭐ Мои позиции</button>
-          <button onclick="renderCatalog('Автоматика')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs shrink-0">Автоматика и Рубильники</button>
-          <button onclick="renderCatalog('Розетки и вилки')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs shrink-0">Розетки и Вилки</button>
-          <button onclick="renderCatalog('Кабель')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs shrink-0">Кабель</button>
-          <button onclick="renderCatalog('Работы')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs shrink-0">Работы</button>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Ищите любой товар напрямую по сайтам магазинов или откройте сайт, скопируйте ссылку на страницу товара и нажмите <b>«➕ Забрать со страницы»</b> — сканер сам вытащит название и цену!
+        </p>
+
+        <!-- Строка поиска / URL страницы -->
+        <div class="flex gap-2">
+          <input id="scanner-input" type="text"
+                 placeholder="Название товара ИЛИ ссылка https://..."
+                 onkeydown="if(event.key==='Enter') runWebScanner()"
+                 class="bg-slate-950 border border-white/15 rounded-xl px-3 py-2.5 text-xs flex-1 outline-none focus:border-cyan-400 text-white">
+          <button onclick="runWebScanner()" class="bg-gradient-to-r from-cyan-600 to-blue-600 px-3.5 py-2.5 rounded-xl text-xs font-bold shrink-0 active:scale-95">
+            🔍 Сканировать
+          </button>
         </div>
+
+        <!-- Быстрые кнопки открытия витрин магазинов -->
+        <div class="space-y-1.5 pt-1">
+          <div class="text-[10px] text-slate-400">Открыть сайт магазина (выберите товар $\rightarrow$ скопируйте ссылку $\rightarrow$ нажмите кнопку ниже):</div>
+          <div class="grid grid-cols-3 gap-1.5">
+            <button onclick="openExternalStore('etm')" class="bg-slate-900 hover:bg-slate-800 border border-blue-500/30 text-blue-300 py-2 rounded-xl text-[11px] font-bold active:scale-95">
+              🏪 Сайт ЭТМ ↗
+            </button>
+            <button onclick="openExternalStore('vi')" class="bg-slate-900 hover:bg-slate-800 border border-red-500/30 text-red-300 py-2 rounded-xl text-[11px] font-bold active:scale-95">
+              🧰 ВсеИнстр. ↗
+            </button>
+            <button onclick="openExternalStore('lemana')" class="bg-slate-900 hover:bg-slate-800 border border-emerald-500/30 text-emerald-300 py-2 rounded-xl text-[11px] font-bold active:scale-95">
+              🟢 Лемана ПРО ↗
+            </button>
+          </div>
+        </div>
+
+        <!-- Главная кнопка перехвата буфера обмена / страницы -->
+        <button onclick="grabFromClipboardOrInput()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 font-bold text-xs text-white shadow-lg shadow-emerald-600/25 active:scale-95 flex items-center justify-center gap-2">
+          <span>➕ Вставить ссылку из буфера и забрать цену с сайта</span>
+        </button>
+      </section>
+
+      <!-- СТАТУС СКАНИРОВАНИЯ И ОКНО НАЙДЕННЫХ ТОВАРОВ НА СТРАНИЦЕ -->
+      <div id="scanner-status" class="hidden glass-card p-3 rounded-xl text-xs text-cyan-300 text-center animate-pulse">
+        ⏳ Сканируем страницу магазина, извлекаем название и цену...
       </div>
-      <div id="catalog-grid" class="space-y-2"></div>
+
+      <!-- Результаты сканирования страницы (с кнопкой "+" напротив каждого товара) -->
+      <div id="scanner-results" class="space-y-2"></div>
+
+      <!-- Ручной перехватчик (если сайт закрыт капчей, но пользователь видит цену глазами) -->
+      <section class="glass-card p-3.5 rounded-2xl space-y-2.5">
+        <div class="text-xs font-bold text-slate-300">⚡ Быстрое создание своей позиции / работы:</div>
+        <div class="grid grid-cols-1 gap-2">
+          <input id="custom-name" type="text" placeholder="Название товара или работы" class="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs outline-none">
+          <div class="grid grid-cols-3 gap-2">
+            <input id="custom-price" type="number" placeholder="Цена ₽" class="bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-xs font-bold text-emerald-400 outline-none">
+            <select id="custom-unit" class="bg-slate-950 border border-white/10 rounded-xl px-2 py-2 text-xs text-white outline-none">
+              <option value="шт.">шт.</option>
+              <option value="м.п.">м.п.</option>
+              <option value="усл.">усл.</option>
+              <option value="точка">точка</option>
+              <option value="компл.">компл.</option>
+            </select>
+            <select id="custom-cat" class="bg-slate-950 border border-white/10 rounded-xl px-2 py-2 text-xs text-white outline-none">
+              <option value="material">Материал</option>
+              <option value="work">Работа</option>
+            </select>
+          </div>
+          <button onclick="addManualItem()" class="w-full py-2.5 rounded-xl bg-blue-600/30 border border-blue-400/40 text-cyan-300 font-bold text-xs active:scale-95">
+            + Добавить в смету и запомнить в базу
+          </button>
+        </div>
+      </section>
+
     </div>
 
     <!-- ВКЛАДКА 3: РЕКВИЗИТЫ ОБЪЕКТА -->
@@ -179,72 +233,6 @@
     </div>
 
   </main>
-
-  <!-- МОДАЛЬНОЕ ОКНО: СОЗДАТЬ СВОЮ ПОЗИЦИЮ ИЛИ РАБОТУ -->
-  <div id="custom-modal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="glass-card w-full max-w-md rounded-2xl p-4 space-y-3 border border-cyan-500/30">
-      <div class="flex justify-between items-center border-b border-white/10 pb-2.5">
-        <h3 class="text-sm font-bold text-cyan-300">✨ Новая позиция (в смету и базу)</h3>
-        <button onclick="closeCustomModal()" class="text-slate-400 text-lg px-1">✕</button>
-      </div>
-
-      <div class="space-y-2.5">
-        <div>
-          <label class="text-[11px] text-slate-400">Наименование товара или работы:</label>
-          <input id="modal-name" type="text" placeholder="Напр: Рубильник реверсивный ABB 40А" class="mt-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm w-full outline-none focus:border-cyan-400">
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="text-[11px] text-slate-400">Тип позиции:</label>
-            <select id="modal-category" class="mt-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm w-full outline-none text-white">
-              <option value="material">📦 Материал</option>
-              <option value="work">🛠 Работа / Услуга</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-[11px] text-slate-400">Ед. измерения:</label>
-            <select id="modal-unit" class="mt-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm w-full outline-none text-white">
-              <option value="шт.">шт.</option>
-              <option value="м.п.">м.п.</option>
-              <option value="усл.">усл.</option>
-              <option value="точка">точка</option>
-              <option value="компл.">компл.</option>
-              <option value="уп.">уп.</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-2">
-          <div>
-            <label class="text-[11px] text-slate-400">Ваша цена / База (₽):</label>
-            <input id="modal-price" type="number" placeholder="450" class="mt-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm w-full outline-none focus:border-emerald-400 font-bold text-emerald-400">
-          </div>
-          <div>
-            <label class="text-[11px] text-slate-400">Кол-во в смету:</label>
-            <input id="modal-qty" type="number" value="1" class="mt-1 bg-slate-950 border border-white/10 rounded-xl px-3 py-2 text-sm w-full outline-none text-white">
-          </div>
-        </div>
-
-        <!-- Быстрая проверка реальной цены на сайтах магазинов -->
-        <div class="bg-slate-950/90 p-2.5 rounded-xl border border-white/5 space-y-1.5">
-          <div class="text-[11px] text-slate-400">Проверить живую цену этого товара на сайтах:</div>
-          <div class="flex flex-wrap gap-1.5">
-            <button onclick="openStoreSearch('etm')" class="text-[11px] bg-blue-500/10 border border-blue-500/30 text-blue-300 px-2.5 py-1 rounded-lg">🔎 ЭТМ</button>
-            <button onclick="openStoreSearch('vi')" class="text-[11px] bg-red-500/10 border border-red-500/30 text-red-300 px-2.5 py-1 rounded-lg">🔎 ВсеИнструменты</button>
-            <button onclick="openStoreSearch('lemana')" class="text-[11px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 px-2.5 py-1 rounded-lg">🔎 Лемана ПРО</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex gap-2 pt-2">
-        <button onclick="closeCustomModal()" class="flex-1 py-2.5 rounded-xl bg-slate-800 text-xs font-semibold text-slate-300">Отмена</button>
-        <button onclick="saveCustomModalItem()" class="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 text-xs font-bold text-white shadow-lg shadow-emerald-600/30">
-          ✓ Добавить и сохранить
-        </button>
-      </div>
-    </div>
-  </div>
 
   <!-- БОКОВАЯ ШТОРКА: МОИ ЧЕРНОВИКИ -->
   <div id="drawer-backdrop" onclick="toggleDrawer(false)" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden"></div>
@@ -283,130 +271,66 @@
   </footer>
 
   <script>
-    // --- ОФЛАЙН-ЯДРО + ПОДКЛЮЧЕНИЕ ВНЕШНЕГО ФАЙЛА ПАРСЕРА (prices.json) ---
+    // --- СТАРТОВАЯ БАЗА + ПОДГРУЗКА ИЗ PRICES.JSON ---
     const BASE_STORE_DB = [
-      { id: "r1", group: "Автоматика", tags: "рубильник вн выключатель нагрузки 25а 25a мини-рубильник вводной", name: "Выключатель нагрузки (Рубильник) 2P 25А (ВН-32 / Systeme)", category: "material", unit: "шт.", stores: { "ЭТМ": 390, "ВсеИнструменты": 420, "Лемана ПРО": 375, "Электромонтаж": 460 } },
+      { id: "r1", group: "Автоматика", tags: "рубильник вн выключатель нагрузки 25а 25a", name: "Выключатель нагрузки (Рубильник) 2P 25А (ВН-32 / Systeme)", category: "material", unit: "шт.", stores: { "ЭТМ": 390, "ВсеИнструменты": 420, "Лемана ПРО": 375, "Электромонтаж": 460 } },
       { id: "r2", group: "Автоматика", tags: "рубильник вн выключатель нагрузки 40а 40a", name: "Выключатель нагрузки (Рубильник) 2P 40А на DIN-рейку", category: "material", unit: "шт.", stores: { "ЭТМ": 480, "ВсеИнструменты": 510, "Лемана ПРО": 465, "Электромонтаж": 550 } },
       { id: "r3", group: "Автоматика", tags: "рубильник вн выключатель нагрузки 63а 63a вводной", name: "Выключатель нагрузки (Рубильник) 2P 63А усиленный", category: "material", unit: "шт.", stores: { "ЭТМ": 590, "ВсеИнструменты": 630, "Лемана ПРО": 570, "Электромонтаж": 680 } },
-      { id: "r4", group: "Автоматика", tags: "рубильник реверсивный перекидной генератор ибп 25а 40а 63а трехпозиционный", name: "Реверсивный рубильник 2P 40А/63А (ввод резерва I-0-II)", category: "material", unit: "шт.", stores: { "ЭТМ": 1850, "ВсеИнструменты": 1990, "Лемана ПРО": 1790, "Электромонтаж": 2250 } },
-      { id: "m1", group: "Автоматика", tags: "автомат ав 16а 16a 1p розетки шнайдер систем", name: "Автомат 1P 16A C (6kA) Systeme Electric (Schneider)", category: "material", unit: "шт.", stores: { "ЭТМ": 345, "ВсеИнструменты": 360, "Лемана ПРО": 338, "Электромонтаж": 395 } },
-      { id: "m2", group: "Автоматика", tags: "автомат ав 10а 10a 1p свет освещение", name: "Автомат 1P 10A C (6kA) Systeme Electric (Schneider)", category: "material", unit: "шт.", stores: { "ЭТМ": 345, "ВсеИнструменты": 355, "Лемана ПРО": 338, "Электромонтаж": 390 } },
-      { id: "m4", group: "Автоматика", tags: "вводной автомат 2p 63а 50а 40а двухполюсный", name: "Вводной автомат 2P 63A C (6kA)", category: "material", unit: "шт.", stores: { "ЭТМ": 840, "ВсеИнструменты": 890, "Лемана ПРО": 820, "Электромонтаж": 950 } },
-      { id: "m5", group: "Автоматика", tags: "узо вдт 40а 30ма защита утечка", name: "УЗО (ВДТ) 2P 40A 30mA тип А (электромеханическое)", category: "material", unit: "шт.", stores: { "ЭТМ": 2850, "ВсеИнструменты": 2990, "Лемана ПРО": 2790, "Электромонтаж": 3200 } },
-      { id: "m6", group: "Автоматика", tags: "дифавтомат диф авдт 16а 30ма", name: "Дифавтомат (АВДТ) 1P+N 16A 30mA тип А", category: "material", unit: "шт.", stores: { "ЭТМ": 2150, "ВсеИнструменты": 2290, "Лемана ПРО": 2100 } },
-      { id: "m7", group: "Автоматика", tags: "реле напряжения ркн зубр rbuz меандр 63а", name: "Реле напряжения RBUZ (ZUBR) D2-63 с термозащитой", category: "material", unit: "шт.", stores: { "ЭТМ": 3890, "ВсеИнструменты": 3750, "Электромонтаж": 4100 } },
-      { id: "v1", group: "Розетки и вилки", tags: "вилка электрическая штепсельная для розетки прямая 16а с заземлением", name: "Вилка штепсельная прямая 16А с заземлением (разборная)", category: "material", unit: "шт.", stores: { "ЭТМ": 125, "ВсеИнструменты": 140, "Лемана ПРО": 115, "Электромонтаж": 165 } },
-      { id: "v2", group: "Розетки и вилки", tags: "вилка угловая плоская для розетки с кольцом 16а заземление", name: "Вилка угловая 16А с заземлением и кольцом (плоская)", category: "material", unit: "шт.", stores: { "ЭТМ": 160, "ВсеИнструменты": 175, "Лемана ПРО": 148, "Электромонтаж": 195 } },
-      { id: "v3", group: "Розетки и вилки", tags: "вилка каучуковая резиновая влагозащищенная ip44 уличная", name: "Вилка силовая каучуковая 16А IP44 (ударопрочная)", category: "material", unit: "шт.", stores: { "ЭТМ": 240, "ВсеИнструменты": 265, "Лемана ПРО": 220, "Электромонтаж": 290 } },
-      { id: "v5", group: "Розетки и вилки", tags: "розетка встраиваемая внутренняя механизм с заземлением шторками atlasdesign", name: "Розетка 1-м встраиваемая 16А с заземлением (AtlasDesign)", category: "material", unit: "шт.", stores: { "ЭТМ": 245, "ВсеИнструменты": 265, "Лемана ПРО": 235, "Электромонтаж": 290 } },
-      { id: "c1", group: "Кабель", tags: "кабель ввг ввгнг 3х2.5 3*2.5 розетки", name: "Кабель ВВГнг(А)-LS 3х2.5 ГОСТ (Конкорд / Севкабель)", category: "material", unit: "м.п.", stores: { "ЭТМ": 112, "ВсеИнструменты": 124, "Лемана ПРО": 118, "Электромонтаж": 129 } },
-      { id: "c2", group: "Кабель", tags: "кабель ввг ввгнг 3х1.5 3*1.5 свет", name: "Кабель ВВГнг(А)-LS 3х1.5 ГОСТ (Конкорд / Севкабель)", category: "material", unit: "м.п.", stores: { "ЭТМ": 72, "ВсеИнструменты": 79, "Лемана ПРО": 75, "Электромонтаж": 84 } },
-      { id: "c5", group: "Кабель", tags: "гофра труба пвх пнд 20 промрукав", name: "Гофра ПВХ d20 тяжелая серая с протяжкой Промрукав", category: "material", unit: "м.п.", stores: { "ЭТМ": 26, "ВсеИнструменты": 29, "Лемана ПРО": 25 } },
-      { id: "c6", group: "Кабель", tags: "подрозетник коробка установочная 68 копос шнайдер", name: "Подрозетник глубокий 68х60 Kopos / Schneider", category: "material", unit: "шт.", stores: { "ЭТМ": 42, "ВсеИнструменты": 48, "Лемана ПРО": 39 } },
-      { id: "b1", group: "Щиты и боксы", tags: "щит бокс электрощит 36 модулей встраиваемый", name: "Щит встраиваемый 36 модулей (3 ряда) с дверцей", category: "material", unit: "шт.", stores: { "ЭТМ": 4650, "ВсеИнструменты": 4890, "Лемана ПРО": 4490 } },
-      { id: "w1", group: "Работы", tags: "работа сборка расключение щита монтаж", name: "Сборка и расключение электрощита (до 36 модулей)", category: "work", unit: "усл.", stores: { "Мой прайс": 12000, "Средняя по РФ": 10000, "Москва/СПб": 16000 } },
-      { id: "w2", group: "Работы", tags: "работа бурение коронка подрозетник бетон", name: "Бурение лунки под подрозетник в бетоне", category: "work", unit: "шт.", stores: { "Мой прайс": 450, "Средняя по РФ": 400, "Москва/СПб": 600 } },
-      { id: "w3", group: "Работы", tags: "работа вмазка установка подрозетника", name: "Вмазка подрозетника и вывод кабеля", category: "work", unit: "шт.", stores: { "Мой прайс": 200, "Средняя по РФ": 180, "Москва/СПб": 300 } },
-      { id: "w4", group: "Работы", tags: "работа прокладка кабеля трасса", name: "Прокладка кабеля в гофре по потолку/стенам", category: "work", unit: "м.п.", stores: { "Мой прайс": 100, "Средняя по РФ": 90, "Москва/СПб": 140 } }
+      { id: "r4", group: "Автоматика", tags: "рубильник реверсивный перекидной генератор ибп", name: "Реверсивный рубильник 2P 40А/63А (ввод резерва I-0-II)", category: "material", unit: "шт.", stores: { "ЭТМ": 1850, "ВсеИнструменты": 1990, "Лемана ПРО": 1790, "Электромонтаж": 2250 } },
+      { id: "m1", group: "Автоматика", tags: "автомат ав 16а 16a 1p розетки", name: "Автомат 1P 16A C (6kA) Systeme Electric (Schneider)", category: "material", unit: "шт.", stores: { "ЭТМ": 345, "ВсеИнструменты": 360, "Лемана ПРО": 338, "Электромонтаж": 395 } },
+      { id: "m2", group: "Автоматика", tags: "автомат ав 10а 10a 1p свет", name: "Автомат 1P 10A C (6kA) Systeme Electric (Schneider)", category: "material", unit: "шт.", stores: { "ЭТМ": 345, "ВсеИнструменты": 355, "Лемана ПРО": 338, "Электромонтаж": 390 } },
+      { id: "m5", group: "Автоматика", tags: "узо вдт 40а 30ма", name: "УЗО (ВДТ) 2P 40A 30mA тип А (электромеханическое)", category: "material", unit: "шт.", stores: { "ЭТМ": 2850, "ВсеИнструменты": 2990, "Лемана ПРО": 2790, "Электромонтаж": 3200 } },
+      { id: "m7", group: "Автоматика", tags: "реле напряжения ркн зубр rbuz 63а", name: "Реле напряжения RBUZ (ZUBR) D2-63 с термозащитой", category: "material", unit: "шт.", stores: { "ЭТМ": 3890, "ВсеИнструменты": 3750, "Электромонтаж": 4100 } },
+      { id: "v1", group: "Розетки и вилки", tags: "вилка электрическая штепсельная для розетки прямая 16а", name: "Вилка штепсельная прямая 16А с заземлением (разборная)", category: "material", unit: "шт.", stores: { "ЭТМ": 125, "ВсеИнструменты": 140, "Лемана ПРО": 115, "Электромонтаж": 165 } },
+      { id: "v2", group: "Розетки и вилки", tags: "вилка угловая плоская для розетки с кольцом 16а", name: "Вилка угловая 16А с заземлением и кольцом (плоская)", category: "material", unit: "шт.", stores: { "ЭТМ": 160, "ВсеИнструменты": 175, "Лемана ПРО": 148, "Электромонтаж": 195 } },
+      { id: "v5", group: "Розетки и вилки", tags: "розетка встраиваемая внутренняя механизм 16а", name: "Розетка 1-м встраиваемая 16А с заземлением (AtlasDesign)", category: "material", unit: "шт.", stores: { "ЭТМ": 245, "ВсеИнструменты": 265, "Лемана ПРО": 235, "Электромонтаж": 290 } },
+      { id: "c1", group: "Кабель", tags: "кабель ввг ввгнг 3х2.5", name: "Кабель ВВГнг(А)-LS 3х2.5 ГОСТ (Конкорд / Севкабель)", category: "material", unit: "м.п.", stores: { "ЭТМ": 112, "ВсеИнструменты": 124, "Лемана ПРО": 118, "Электромонтаж": 129 } },
+      { id: "c2", group: "Кабель", tags: "кабель ввг ввгнг 3х1.5", name: "Кабель ВВГнг(А)-LS 3х1.5 ГОСТ (Конкорд / Севкабель)", category: "material", unit: "м.п.", stores: { "ЭТМ": 72, "ВсеИнструменты": 79, "Лемана ПРО": 75, "Электромонтаж": 84 } },
+      { id: "c5", group: "Кабель", tags: "гофра труба пвх 20", name: "Гофра ПВХ d20 тяжелая серая с протяжкой Промрукав", category: "material", unit: "м.п.", stores: { "ЭТМ": 26, "ВсеИнструменты": 29, "Лемана ПРО": 25 } },
+      { id: "c6", group: "Кабель", tags: "подрозетник коробка 68", name: "Подрозетник глубокий 68х60 Kopos / Schneider", category: "material", unit: "шт.", stores: { "ЭТМ": 42, "ВсеИнструменты": 48, "Лемана ПРО": 39 } },
+      { id: "b1", group: "Щиты и боксы", tags: "щит бокс 36 модулей", name: "Щит встраиваемый 36 модулей (3 ряда) с дверцей", category: "material", unit: "шт.", stores: { "ЭТМ": 4650, "ВсеИнструменты": 4890, "Лемана ПРО": 4490 } },
+      { id: "w1", group: "Работы", tags: "работа сборка щита", name: "Сборка и расключение электрощита (до 36 модулей)", category: "work", unit: "усл.", stores: { "Мой прайс": 12000, "Средняя по РФ": 10000, "Москва/СПб": 16000 } },
+      { id: "w2", group: "Работы", tags: "работа бурение подрозетник", name: "Бурение лунки под подрозетник в бетоне", category: "work", unit: "шт.", stores: { "Мой прайс": 450, "Средняя по РФ": 400, "Москва/СПб": 600 } },
+      { id: "w3", group: "Работы", tags: "работа вмазка подрозетник", name: "Вмазка подрозетника и вывод кабеля", category: "work", unit: "шт.", stores: { "Мой прайс": 200, "Средняя по РФ": 180, "Москва/СПб": 300 } },
+      { id: "w4", group: "Работы", tags: "работа прокладка кабеля", name: "Прокладка кабеля в гофре по потолку/стенам", category: "work", unit: "м.п.", stores: { "Мой прайс": 100, "Средняя по РФ": 90, "Москва/СПб": 140 } }
     ];
 
     let externalParsedDB = [];
     let userCatalogItems = JSON.parse(localStorage.getItem("smeta_pro_user_catalog") || "[]");
+    let lastScannedItems = [];
 
     function getFullCatalog() {
-      return [...userCatalogItems, ...externalParsedDB, ...BASE_STORE_DB];
+      const combined = [...userCatalogItems, ...externalParsedDB, ...BASE_STORE_DB];
+      const seen = new Set();
+      return combined.filter(x => {
+        if (seen.has(x.name)) return false;
+        seen.add(x.name);
+        return true;
+      });
     }
 
-    // Попытка подгрузить свежий спарсенный файл prices.json (если настроен автопарсер GitHub Actions)
     async function loadExternalParsedPrices() {
       try {
         const res = await fetch("./prices.json?t=" + Date.now());
         if (res.ok) {
-          externalParsedDB = await res.json();
-          renderCatalog("all");
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) externalParsedDB = data;
         }
       } catch (e) {}
     }
 
-    // --- ЖИВОЙ ОНЛАЙН-ПАРСЕР ТОВАРОВ ЧЕРЕЗ ПРОКСИ ---
-    async function liveWebParse() {
+    // --- ЛОГИКА ВЕБ-СКАНЕРА И ПЕРЕХВАТА СТРАНИЦ МАГАЗИНОВ ---
+    function openWebScannerWithQuery() {
       const q = document.getElementById("smart-search").value.trim();
-      if (q.length < 2) return alert("Введите название товара в строку поиска (например: контактор 25А, дифавтомат ABB, розетка Legrand)");
-
-      const statusBox = document.getElementById("parser-status");
-      const statusText = document.getElementById("parser-status-text");
-      const dropdown = document.getElementById("search-dropdown");
-
-      statusBox.classList.remove("hidden");
-      statusText.innerText = `⏳ Ищем «${q}» по прайсам в сети...`;
-
-      try {
-        // Запрашиваем открытый каталог ЭТМ / Маркета через CORS-прокси
-        const etmUrl = `https://ipro.etm.ru/api/v1/goods?name=${encodeURIComponent(q)}&rows=5`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(etmUrl)}`;
-        const response = await fetch(proxyUrl);
-        const data = await response.json();
-        let parsedItems = [];
-
-        if (data && data.contents) {
-          try {
-            const json = JSON.parse(data.contents);
-            const rows = json?.data?.rows || [];
-            parsedItems = rows.map((r, i) => {
-              const p = parseFloat(r.price || r.price_retail || 450);
-              return {
-                id: "web_" + Date.now() + "_" + i,
-                group: "Мои позиции",
-                tags: q.toLowerCase(),
-                name: r.name || `${q} (${r.brand || 'ГОСТ'})`,
-                category: "material",
-                unit: r.edizm || "шт.",
-                stores: {
-                  "ЭТМ (онлайн)": Math.round(p),
-                  "ВсеИнструменты (~)": Math.round(p * 1.04),
-                  "Лемана ПРО (~)": Math.round(p * 0.97)
-                }
-              };
-            });
-          } catch (innerErr) {}
-        }
-
-        statusBox.classList.add("hidden");
-
-        if (parsedItems.length > 0) {
-          userCatalogItems = [...parsedItems, ...userCatalogItems];
-          localStorage.setItem("smeta_pro_user_catalog", JSON.stringify(userCatalogItems));
-          handleSearchInput(q);
-        } else {
-          // Если антибот магазина заблокировал прокси — открываем умное окно создания позиции с кнопками прямой сверки
-          openCustomModal(q);
-        }
-      } catch (err) {
-        statusBox.classList.add("hidden");
-        openCustomModal(q);
+      switchTab("scanner");
+      if (q) {
+        document.getElementById("scanner-input").value = q;
+        runWebScanner();
       }
     }
 
-    // --- МОДАЛЬНОЕ ОКНО СОЗДАНИЯ СВОЕЙ ПОЗИЦИИ / РАБОТЫ ---
-    function openCustomModal(prefillName = "") {
-      const q = prefillName || document.getElementById("smart-search").value.trim();
-      document.getElementById("modal-name").value = q;
-      const workWords = ["монтаж", "сборка", "установка", "прокладка", "штроб", "бурение", "расключение", "вмазка", "демонтаж"];
-      const isWork = workWords.some(w => q.toLowerCase().includes(w));
-      document.getElementById("modal-category").value = isWork ? "work" : "material";
-      document.getElementById("modal-price").value = "";
-      document.getElementById("modal-qty").value = "1";
-      document.getElementById("custom-modal").classList.remove("hidden");
-      document.getElementById("search-dropdown").classList.add("hidden");
-    }
-
-    function closeCustomModal() {
-      document.getElementById("custom-modal").classList.add("hidden");
-    }
-
-    function openStoreSearch(store) {
-      const q = document.getElementById("modal-name").value.trim();
-      if (!q) return alert("Введите название товара выше!");
+    function openExternalStore(store) {
+      const q = document.getElementById("scanner-input").value.trim() || "автомат 16А";
       const urls = {
         etm: `https://www.etm.ru/catalog?searchValue=${encodeURIComponent(q)}`,
         vi: `https://www.vseinstrumenti.ru/search/?what=${encodeURIComponent(q)}`,
@@ -415,40 +339,259 @@
       window.open(urls[store], "_blank");
     }
 
-    function saveCustomModalItem() {
-      const name = document.getElementById("modal-name").value.trim();
-      const category = document.getElementById("modal-category").value;
-      const unit = document.getElementById("modal-unit").value;
-      const price = parseFloat(document.getElementById("modal-price").value || "0");
-      const qty = parseFloat(document.getElementById("modal-qty").value || "1");
+    async function grabFromClipboardOrInput() {
+      let text = document.getElementById("scanner-input").value.trim();
+      try {
+        if (!text && navigator.clipboard) {
+          text = (await navigator.clipboard.readText()).trim();
+          document.getElementById("scanner-input").value = text;
+        }
+      } catch (e) {}
 
-      if (!name) return alert("Укажите наименование!");
-      if (price <= 0) return alert("Укажите цену!");
+      if (!text) {
+        const pasted = prompt("Вставьте скопированную ссылку на страницу товара (или название):");
+        if (!pasted) return;
+        document.getElementById("scanner-input").value = pasted.trim();
+      }
+      runWebScanner();
+    }
 
-      const stores = category === "work"
-        ? { "Мой прайс": Math.round(price), "Средняя по РФ": Math.round(price * 0.9), "Срочный выезд": Math.round(price * 1.3) }
-        : { "Моя цена": Math.round(price), "ЭТМ (~)": Math.round(price * 0.98), "ВсеИнструменты (~)": Math.round(price * 1.04), "Лемана ПРО (~)": Math.round(price * 0.95) };
+    // Умный парсер HTML-кода любой страницы товара (вытаскивает Title, JSON-LD цену, мета-теги)
+    function extractProductFromHTML(html, sourceUrl) {
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      let title = "";
+      let price = 0;
 
-      const newDbItem = {
-        id: "usr_" + Date.now(),
-        group: "Мои позиции",
-        tags: name.toLowerCase(),
-        name, category, unit, stores
+      // 1. Ищем микроразметку Schema.org (JSON-LD), которая есть на ВсеИнструменты, Лемана, ЭТМ, Озон
+      const scripts = doc.querySelectorAll('script[type="application/ld+json"]');
+      scripts.forEach(s => {
+        try {
+          const data = JSON.parse(s.textContent);
+          const items = Array.isArray(data) ? data : [data];
+          items.forEach(obj => {
+            if (obj["@type"] === "Product" || obj.offers) {
+              if (!title && obj.name) title = obj.name;
+              const offer = Array.isArray(obj.offers) ? obj.offers[0] : obj.offers;
+              if (offer && (offer.price || offer.lowPrice)) {
+                price = parseFloat(offer.price || offer.lowPrice);
+              }
+            }
+          });
+        } catch (e) {}
+      });
+
+      // 2. Если JSON-LD нет, берем OpenGraph / H1 / Title страницы
+      if (!title) {
+        const ogTitle = doc.querySelector('meta[property="og:title"]')?.getAttribute("content");
+        const h1 = doc.querySelector("h1")?.textContent;
+        title = (ogTitle || h1 || doc.title || "").trim();
+        title = title.replace(/\s*[-|—]\s*(купить|цена|в интернет-магазине|ВсеИнструменты|ЭТМ|Лемана).*$/i, "").trim();
+      }
+
+      // 3. Ищем цену в мета-тегах или регуляркой возле знака рубля
+      if (!price || price <= 0) {
+        const metaPrice = doc.querySelector('meta[property="product:price:amount"], meta[itemprop="price"]')?.getAttribute("content");
+        if (metaPrice) price = parseFloat(metaPrice.replace(/\s/g, "").replace(",", "."));
+      }
+      if (!price || price <= 0) {
+        const priceMatch = html.match(/"price"\s*:\s*"?(\d{2,6}(?:[.,]\d{1,2})?)"?/i) ||
+                           html.match(/(\d[\d\s]{1,6})\s*(?:₽|руб)/i);
+        if (priceMatch) {
+          price = parseFloat(priceMatch[1].replace(/\s/g, "").replace(",", "."));
+        }
+      }
+
+      // Определяем имя магазина по ссылке
+      let storeName = "Сайт магазина";
+      if (sourceUrl.includes("etm.ru")) storeName = "ЭТМ (с сайта)";
+      else if (sourceUrl.includes("vseinstrumenti.ru")) storeName = "ВсеИнструменты (с сайта)";
+      else if (sourceUrl.includes("lemana") || sourceUrl.includes("leroy")) storeName = "Лемана ПРО (с сайта)";
+      else if (sourceUrl.includes("ozon.ru")) storeName = "Ozon (с сайта)";
+      else if (sourceUrl.includes("chipdip.ru")) storeName = "Чип и Дип (с сайта)";
+
+      return { title, price, storeName };
+    }
+
+    async function runWebScanner() {
+      const input = document.getElementById("scanner-input").value.trim();
+      if (!input) return alert("Введите название товара или вставьте ссылку на страницу магазина!");
+
+      const status = document.getElementById("scanner-status");
+      const resultsBox = document.getElementById("scanner-results");
+      status.classList.remove("hidden");
+      resultsBox.innerHTML = "";
+      lastScannedItems = [];
+
+      const isUrl = /^https?:\/\//i.test(input);
+
+      if (isUrl) {
+        // РЕЖИМ А: Пользователь вставил конкретную ссылку на страницу товара
+        try {
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(input)}`;
+          const res = await fetch(proxyUrl);
+          const data = await res.json();
+          const extracted = extractProductFromHTML(data.contents || "", input);
+
+          // Если в самом URL зашито название (на случай жесткой капчи на сайте), расшифровываем его
+          let fallbackTitle = extracted.title;
+          if (!fallbackTitle || fallbackTitle.length < 3 || fallbackTitle.includes("Just a moment") || fallbackTitle.includes("Доступ ограничен")) {
+            const slug = decodeURIComponent(input.split("/").filter(Boolean).pop() || "Товар с сайта")
+              .replace(/[-_]/g, " ").replace(/\.html?$/i, "");
+            fallbackTitle = slug.charAt(0).toUpperCase() + slug.slice(1);
+          }
+
+          const finalPrice = extracted.price > 0 ? Math.round(extracted.price) : 450;
+
+          lastScannedItems.push({
+            name: fallbackTitle,
+            price: finalPrice,
+            storeName: extracted.storeName,
+            unit: "шт.",
+            isBlockedPrice: extracted.price <= 0
+          });
+        } catch (e) {
+          alert("Не удалось прочитать страницу напрямую. Укажите цену ниже вручную.");
+        }
+      } else {
+        // РЕЖИМ Б: Пользователь ищет товар по названию — сканируем базу + живой каталог ЭТМ
+        const localMatches = smartMatchCatalog(input).slice(0, 5);
+        localMatches.forEach(m => {
+          const entries = Object.entries(m.stores);
+          const best = entries.reduce((a, b) => a[1] < b[1] ? a : b);
+          lastScannedItems.push({
+            name: m.name,
+            price: best[1],
+            storeName: best[0],
+            unit: m.unit,
+            stores: m.stores
+          });
+        });
+
+        // Дополнительно запрашиваем живую выдачу ЭТМ iPRO через прокси
+        try {
+          const etmUrl = `https://ipro.etm.ru/api/v1/goods?name=${encodeURIComponent(input)}&rows=5`;
+          const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(etmUrl)}`;
+          const res = await fetch(proxyUrl);
+          const data = await res.json();
+          if (data && data.contents) {
+            const json = JSON.parse(data.contents);
+            const rows = json?.data?.rows || [];
+            rows.forEach(r => {
+              const p = parseFloat(r.price || r.price_retail || 0);
+              if (p > 0) {
+                lastScannedItems.push({
+                  name: r.name || input,
+                  price: Math.round(p),
+                  storeName: "ЭТМ (онлайн)",
+                  unit: r.edizm || "шт."
+                });
+              }
+            });
+          }
+        } catch (e) {}
+
+        // Если товар совсем редкий, формируем умную карточку для захвата в 1 клик
+        if (lastScannedItems.length === 0) {
+          lastScannedItems.push({
+            name: input.charAt(0).toUpperCase() + input.slice(1),
+            price: 450,
+            storeName: "ЭТМ / Рынок РФ",
+            unit: "шт.",
+            isBlockedPrice: true
+          });
+        }
+      }
+
+      status.classList.add("hidden");
+      renderScannerResults();
+    }
+
+    function renderScannerResults() {
+      const box = document.getElementById("scanner-results");
+      if (lastScannedItems.length === 0) return;
+
+      box.innerHTML = lastScannedItems.map((item, idx) => `
+        <div class="glass-card p-3.5 rounded-2xl border border-cyan-500/30 flex flex-col gap-2">
+          <div class="flex justify-between items-start gap-2">
+            <div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300">${item.storeName}</span>
+              <div class="text-xs font-bold text-white mt-1.5">${item.name}</div>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between gap-2 pt-2 border-t border-white/10">
+            <div class="flex items-center gap-1.5">
+              <span class="text-[11px] text-slate-400">Цена на сайте (₽):</span>
+              <input id="scanned-price-${idx}" type="number" value="${item.price}" 
+                     class="w-20 bg-slate-950 border border-emerald-500/40 rounded-lg px-2 py-1 text-xs font-bold text-emerald-400 outline-none">
+            </div>
+            <button onclick="grabScannedItem(${idx})" class="bg-gradient-to-r from-emerald-600 to-teal-500 px-3.5 py-2 rounded-xl text-xs font-bold text-white shadow-lg shadow-emerald-600/30 active:scale-95">
+              ➕ Забрать в смету
+            </button>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function grabScannedItem(idx) {
+      const item = lastScannedItems[idx];
+      if (!item) return;
+      const editedPrice = parseFloat(document.getElementById(`scanned-price-${idx}`).value || item.price);
+      const stores = item.stores || {
+        [item.storeName]: Math.round(editedPrice),
+        "ЭТМ (~)": Math.round(editedPrice * 0.98),
+        "ВсеИнструменты (~)": Math.round(editedPrice * 1.04),
+        "Лемана ПРО (~)": Math.round(editedPrice * 0.95)
       };
 
+      const newDbItem = {
+        id: "grab_" + Date.now(),
+        group: "Мои позиции",
+        tags: item.name.toLowerCase(),
+        name: item.name,
+        category: "material",
+        unit: item.unit || "шт.",
+        stores: stores
+      };
+
+      // Навсегда сохраняем в базу пользователя
+      userCatalogItems.unshift(newDbItem);
+      localStorage.setItem("smeta_pro_user_catalog", JSON.stringify(userCatalogItems));
+
+      // И сразу добавляем в текущую смету
+      const d = getCurrentDraft();
+      d.items.unshift(createItemFromDB(newDbItem, 1, item.storeName));
+      saveAllDrafts();
+      renderItems();
+      switchTab("editor");
+    }
+
+    function addManualItem() {
+      const name = document.getElementById("custom-name").value.trim();
+      const price = parseFloat(document.getElementById("custom-price").value || "0");
+      const unit = document.getElementById("custom-unit").value;
+      const category = document.getElementById("custom-cat").value;
+
+      if (!name || price <= 0) return alert("Введите название и цену!");
+
+      const stores = category === "work"
+        ? { "Мой прайс": Math.round(price), "Средняя по РФ": Math.round(price * 0.9) }
+        : { "С сайта": Math.round(price), "ЭТМ (~)": Math.round(price * 0.98), "ВсеИнструменты (~)": Math.round(price * 1.04) };
+
+      const newDbItem = { id: "man_" + Date.now(), group: "Мои позиции", tags: name.toLowerCase(), name, category, unit, stores };
       userCatalogItems.unshift(newDbItem);
       localStorage.setItem("smeta_pro_user_catalog", JSON.stringify(userCatalogItems));
 
       const d = getCurrentDraft();
-      d.items.unshift(createItemFromDB(newDbItem, qty));
-      document.getElementById("smart-search").value = "";
-      closeCustomModal();
+      d.items.unshift(createItemFromDB(newDbItem, 1));
+      document.getElementById("custom-name").value = "";
+      document.getElementById("custom-price").value = "";
       saveAllDrafts();
       renderItems();
-      renderCatalog("all");
+      switchTab("editor");
     }
 
-    // --- ШАБЛОНЫ И ЧЕРНОВИКИ ---
+    // --- ОСНОВНАЯ ЛОГИКА СМЕТ И ЧЕРНОВИКОВ ---
     const DEFAULT_PRESETS = [
       { id: "shield", title: "⚡ Щит 36 мод.", items: [
         { dbId: "w1", qty: 1 }, { dbId: "b1", qty: 1 }, { dbId: "r3", qty: 1 },
@@ -492,12 +635,11 @@
       };
     }
 
-    function init() {
+    async function init() {
+      await loadExternalParsedPrices();
       loadDraftToUI();
       renderPresetsBar();
-      renderCatalog("all");
       renderDraftsDrawer();
-      loadExternalParsedPrices();
     }
 
     function loadDraftToUI() {
@@ -625,13 +767,9 @@
       renderItems();
     }
 
-    // --- УМНЫЙ ПОИСК ---
     function smartMatchCatalog(query) {
       const catalog = getFullCatalog();
-      const words = query.toLowerCase()
-        .replace(/(\d+)\s*a\b/g, "$1а")
-        .split(/\s+/)
-        .filter(w => w.length > 0);
+      const words = query.toLowerCase().replace(/(\d+)\s*a\b/g, "$1а").split(/\s+/).filter(w => w.length > 0);
       if (words.length === 0) return [];
 
       const scored = [];
@@ -658,7 +796,19 @@
         return;
       }
 
-      const matches = smartMatchCatalog(q).slice(0, 7);
+      // Если вставили ссылку прямо в главное поле поиска — сразу предлагаем спарсить страницу!
+      if (/^https?:\/\//i.test(q)) {
+        box.classList.remove("hidden");
+        box.innerHTML = `
+          <div onclick="openWebScannerWithQuery()" class="p-3 bg-emerald-950/60 hover:bg-emerald-900/60 cursor-pointer flex justify-between items-center">
+            <span class="text-xs font-bold text-emerald-300">🌐 Извлечь название и цену по этой ссылке</span>
+            <span class="text-xs font-bold bg-emerald-500/20 text-emerald-300 px-2.5 py-1 rounded-lg">➕ Забрать</span>
+          </div>
+        `;
+        return;
+      }
+
+      const matches = smartMatchCatalog(q).slice(0, 6);
       box.classList.remove("hidden");
 
       const itemsHtml = matches.map(m => {
@@ -676,20 +826,17 @@
         `;
       }).join("");
 
-      const actionsHtml = `
-        <div class="p-2.5 bg-slate-900/90 flex flex-col gap-1.5">
-          <button onclick="liveWebParse()" class="w-full py-2 px-3 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-xs font-bold text-left flex justify-between items-center">
-            <span>🌐 Найти «${q}» в онлайн-прайсах</span>
-            <span>→</span>
-          </button>
-          <button onclick="openCustomModal('${q.replace(/'/g, "")}')" class="w-full py-2 px-3 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold text-left flex justify-between items-center">
-            <span>✏️ Задать свою цену для «${q}»</span>
-            <span>+ В базу</span>
-          </button>
+      const scannerBtnHtml = `
+        <div onclick="openWebScannerWithQuery()" class="p-3 bg-cyan-950/60 hover:bg-cyan-900/60 cursor-pointer flex justify-between items-center">
+          <div>
+            <div class="text-xs font-bold text-cyan-300">🌐 Открыть Веб-Сканер для «${q}»</div>
+            <div class="text-[10px] text-slate-400">Найти на сайтах ЭТМ / ВИ / Лемана и забрать кнопкой «+»</div>
+          </div>
+          <span class="text-xs font-bold bg-cyan-500/20 text-cyan-300 px-2.5 py-1 rounded-lg">Найти ↗</span>
         </div>
       `;
 
-      box.innerHTML = itemsHtml + actionsHtml;
+      box.innerHTML = itemsHtml + scannerBtnHtml;
     }
 
     function addFromCatalog(dbId) {
@@ -708,6 +855,11 @@
       const text = input.value.trim();
       if (!text) return;
 
+      if (/^https?:\/\//i.test(text)) {
+        openWebScannerWithQuery();
+        return;
+      }
+
       const match = text.match(/^(.*?)\s+(\d+(?:[.,]\d+)?)\s*(шт|м|мп|м\.п\.|усл|компл|точк[аи])?\s*(?:по|х|x|\*)?\s*(\d+(?:[.,]\d+)?)$/i);
       const d = getCurrentDraft();
 
@@ -722,11 +874,9 @@
         const stores = {
           "Моя цена": Math.round(price),
           "ЭТМ (~)": Math.round(price * 0.98),
-          "ВсеИнструменты (~)": Math.round(price * 1.04),
-          "Лемана ПРО (~)": Math.round(price * 0.95)
+          "ВсеИнструменты (~)": Math.round(price * 1.04)
         };
 
-        // Также сохраняем в личную базу, чтобы в следующий раз находилось мгновенно
         userCatalogItems.unshift({ id: "usr_" + Date.now(), group: "Мои позиции", tags: name.toLowerCase(), name, category, unit, stores });
         localStorage.setItem("smeta_pro_user_catalog", JSON.stringify(userCatalogItems));
 
@@ -736,9 +886,7 @@
         saveAllDrafts();
         renderItems();
       } else {
-        const matches = smartMatchCatalog(text);
-        if (matches.length > 0) addFromCatalog(matches[0].id);
-        else openCustomModal(text);
+        openWebScannerWithQuery();
       }
     }
 
@@ -803,7 +951,7 @@
           <div class="glass-card rounded-2xl p-8 text-center space-y-2">
             <div class="text-2xl">⚡</div>
             <div class="text-sm font-semibold text-slate-300">Смета пока пуста</div>
-            <div class="text-xs text-slate-500">Ищите товары в строке выше, жмите «🌐 Парсер» или «+ Своя позиция»</div>
+            <div class="text-xs text-slate-500">Ищите товары выше или откройте вкладку «🌐 Веб-Сканер», чтобы забирать позиции с сайтов магазинов</div>
           </div>`;
         recalc();
         return;
@@ -852,36 +1000,8 @@
       recalc();
     }
 
-    function renderCatalog(groupFilter) {
-      const grid = document.getElementById("catalog-grid");
-      const catalog = getFullCatalog();
-      const filtered = groupFilter === 'all' ? catalog : catalog.filter(x => x.group === groupFilter);
-      if (filtered.length === 0) {
-        grid.innerHTML = `<div class="text-center text-xs text-slate-500 py-6">В этой категории пока нет позиций. Нажмите «+ Создать свою позицию».</div>`;
-        return;
-      }
-      grid.innerHTML = filtered.map(item => {
-        const badges = Object.entries(item.stores).map(([st, pr]) => `
-          <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-950 border border-white/10 text-slate-300">
-            ${st}: <b class="text-cyan-300">${pr} ₽</b>
-          </span>
-        `).join("");
-        return `
-          <div class="glass-card p-3 rounded-xl flex justify-between items-center gap-3">
-            <div class="space-y-1.5">
-              <div class="text-xs font-bold text-slate-100">${item.name}</div>
-              <div class="flex flex-wrap gap-1">${badges}</div>
-            </div>
-            <button onclick="addFromCatalog('${item.id}'); switchTab('editor');" class="shrink-0 bg-blue-600/30 border border-blue-400/40 text-cyan-300 px-3 py-2 rounded-xl text-xs font-bold active:scale-95">
-              + В смету
-            </button>
-          </div>
-        `;
-      }).join("");
-    }
-
     function switchTab(tab) {
-      ["editor", "catalog", "details"].forEach(t => {
+      ["editor", "scanner", "details"].forEach(t => {
         document.getElementById(`view-${t}`).classList.toggle("hidden", t !== tab);
         const btn = document.getElementById(`tab-${t}`);
         btn.className = t === tab ? "py-2 rounded-lg bg-slate-800 text-cyan-400 shadow" : "py-2 rounded-lg text-slate-400";

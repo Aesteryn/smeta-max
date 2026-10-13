@@ -3,146 +3,497 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>СметаМАХ — Быстрые сметы</title>
+  <title>СметаМАХ PRO — Инженерный терминал</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Настоящий векторный генератор PDF с поддержкой кириллицы (без скриншотов!) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #060913;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.18) 0px, transparent 50%),
+        radial-gradient(at 100% 20%, rgba(16, 185, 129, 0.12) 0px, transparent 50%);
+      background-attachment: fixed;
+    }
+    .glass {
+      background: rgba(15, 23, 42, 0.72);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: linear-gradient(145deg, rgba(30, 41, 59, 0.55), rgba(15, 23, 42, 0.75));
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.4);
+    }
+    .neon-border:focus-within {
+      border-color: #38bdf8;
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.25);
+    }
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+  </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen pb-32 font-sans select-none">
+<body class="text-slate-100 min-h-screen pb-36 select-none">
 
-  <!-- Шапка -->
-  <header class="sticky top-0 z-20 bg-slate-800/95 backdrop-blur border-b border-slate-700 px-4 py-3 flex justify-between items-center shadow-lg">
-    <div>
-      <h1 class="text-lg font-bold text-blue-400">⚡ СметаМАХ</h1>
-      <p class="text-xs text-slate-400" id="items-count">0 позиций</p>
-    </div>
-    <div class="text-right">
-      <div class="text-xs text-slate-400">Итого к оплате:</div>
-      <div class="text-xl font-extrabold text-emerald-400" id="grand-total">0 ₽</div>
+  <!-- ВЕРХНЯЯ ПАНЕЛЬ (GLASS HEADER) -->
+  <header class="sticky top-0 z-30 glass px-4 py-3 border-b border-white/10">
+    <div class="max-w-lg mx-auto flex justify-between items-center">
+      <div class="flex items-center gap-2.5">
+        <button onclick="toggleDrawer(true)" class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 active:scale-95 transition">
+          📂
+        </button>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-extrabold text-base tracking-tight bg-gradient-to-r from-blue-400 via-cyan-300 to-emerald-400 bg-clip-text text-transparent">СметаМАХ</span>
+            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">PRO</span>
+          </div>
+          <button onclick="toggleDrawer(true)" class="text-xs text-slate-400 flex items-center gap-1 hover:text-slate-200">
+            <span id="current-draft-title" class="truncate max-w-[150px] font-medium text-slate-300">Новая смета</span>
+            <span>▾</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="text-right">
+        <div class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Итого к оплате</div>
+        <div class="text-xl font-extrabold text-emerald-400 tracking-tight" id="grand-total">0 ₽</div>
+      </div>
     </div>
   </header>
 
   <main class="p-4 space-y-4 max-w-lg mx-auto">
 
-    <!-- Данные объекта и мастера -->
-    <section class="bg-slate-800 p-3 rounded-xl border border-slate-700 space-y-2">
-      <div class="grid grid-cols-2 gap-2">
-        <input id="master_name" type="text" placeholder="Ваше имя / Бригада" oninput="saveMeta()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm w-full outline-none focus:border-blue-500">
-        <input id="master_phone" type="tel" placeholder="Ваш телефон" oninput="saveMeta()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm w-full outline-none focus:border-blue-500">
-      </div>
-      <div class="grid grid-cols-2 gap-2">
-        <input id="client_name" type="text" placeholder="Имя заказчика" oninput="saveMeta()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm w-full outline-none focus:border-blue-500">
-        <input id="object_address" type="text" placeholder="Адрес объекта" oninput="saveMeta()" class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm w-full outline-none focus:border-blue-500">
-      </div>
-      <div class="grid grid-cols-2 gap-2 pt-1">
-        <label class="text-xs text-slate-400 flex items-center justify-between bg-slate-900 px-3 py-1.5 rounded-lg">
-          <span>Расходники (%):</span>
-          <input id="consumables_percent" type="number" value="5" oninput="recalc()" class="w-12 bg-transparent text-right font-bold text-slate-200 outline-none">
-        </label>
-        <label class="text-xs text-slate-400 flex items-center justify-between bg-slate-900 px-3 py-1.5 rounded-lg">
-          <span>Скидка (%):</span>
-          <input id="discount_percent" type="number" value="0" oninput="recalc()" class="w-12 bg-transparent text-right font-bold text-emerald-400 outline-none">
-        </label>
-      </div>
-    </section>
+    <!-- ПЕРЕКЛЮЧАТЕЛЬ ВКЛАДОК -->
+    <div class="grid grid-cols-3 gap-1 p-1 rounded-xl bg-slate-900/90 border border-white/5 text-xs font-semibold">
+      <button onclick="switchTab('editor')" id="tab-editor" class="py-2 rounded-lg bg-slate-800 text-cyan-400 shadow">⚡ Смета</button>
+      <button onclick="switchTab('catalog')" id="tab-catalog" class="py-2 rounded-lg text-slate-400">🏪 База цен РФ</button>
+      <button onclick="switchTab('details')" id="tab-details" class="py-2 rounded-lg text-slate-400">⚙️ Реквизиты</button>
+    </div>
 
-    <!-- Шаблоны -->
-    <section>
-      <div class="flex justify-between items-center mb-1.5">
-        <span class="text-xs text-slate-400 font-medium">Быстрые шаблоны (нажми, чтобы добавить):</span>
-        <button onclick="clearAll()" class="text-xs text-rose-400 underline">Очистить всё</button>
-      </div>
-      <div class="flex gap-2 overflow-x-auto pb-1">
-        <button onclick="applyPreset('shield')" class="shrink-0 bg-slate-800 border border-slate-600 px-3 py-2 rounded-lg text-xs font-medium active:scale-95">⚡ Щит в двушку</button>
-        <button onclick="applyPreset('point')" class="shrink-0 bg-slate-800 border border-slate-600 px-3 py-2 rounded-lg text-xs font-medium active:scale-95">🛠 Черновая точка</button>
-        <button onclick="applyPreset('cable')" class="shrink-0 bg-slate-800 border border-slate-600 px-3 py-2 rounded-lg text-xs font-medium active:scale-95">🔌 Кабельная трасса</button>
-      </div>
-    </section>
+    <!-- ВКЛАДКА 1: РЕДАКТОР СМЕТЫ -->
+    <div id="view-editor" class="space-y-4">
 
-    <!-- Быстрый ввод одной строкой -->
-    <section class="bg-blue-950/40 border border-blue-800/60 p-3 rounded-xl">
-      <div class="text-xs text-blue-300 mb-1.5 font-medium">Быстрый ввод (Название Кол-во Цена):</div>
-      <div class="flex gap-2">
-        <input id="quick-input" type="text" placeholder="Напр: Автомат 16А 8 шт 350" 
-               class="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm flex-1 outline-none focus:border-blue-400">
-        <button onclick="parseQuickLine()" class="bg-blue-600 active:scale-95 px-4 py-2 rounded-lg font-bold text-sm">+</button>
-      </div>
-    </section>
+      <!-- ЖИВОЙ ПОИСК ПО МАГАЗИНАМ + УМНЫЙ ВВОД -->
+      <section class="glass-card p-3.5 rounded-2xl neon-border transition relative">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-semibold text-cyan-300 flex items-center gap-1.5">
+            🔍 Поиск по базам (ЭТМ, ВИ, Лемана) или быстрый ввод
+          </span>
+          <span class="text-[10px] text-slate-400">120+ позиций</span>
+        </div>
+        <div class="flex gap-2">
+          <input id="smart-search" type="text" autocomplete="off"
+                 placeholder="Напр: ВВГнг 3х2.5 или Автомат 16А 8 шт 350"
+                 oninput="handleSearchInput(this.value)"
+                 onkeydown="if(event.key==='Enter') parseQuickLine()"
+                 class="bg-slate-950/90 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm flex-1 outline-none text-white placeholder-slate-500">
+          <button onclick="parseQuickLine()" class="bg-gradient-to-r from-blue-600 to-cyan-500 active:scale-95 px-4 rounded-xl font-bold text-sm shadow-lg shadow-blue-600/30">+</button>
+        </div>
 
-    <!-- Список позиций на экране -->
-    <section class="space-y-2" id="items-list"></section>
+        <!-- Выпадающий список автодополнения из базы магазинов -->
+        <div id="search-dropdown" class="hidden mt-2 max-h-64 overflow-y-auto rounded-xl bg-slate-950 border border-slate-700 divide-y divide-slate-800/80 shadow-2xl"></div>
+      </section>
+
+      <!-- ГОТОВЫЕ ШАБЛОНЫ + МОИ ЧЕРНОВИКИ УЗЛОВ -->
+      <section>
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs text-slate-400 font-medium">Быстрые узлы и шаблоны:</span>
+          <div class="flex gap-3">
+            <button onclick="saveCurrentAsTemplate()" class="text-xs text-cyan-400 hover:underline">+ Сохранить как шаблон</button>
+            <button onclick="clearAll()" class="text-xs text-rose-400 hover:underline">Очистить</button>
+          </div>
+        </div>
+        <div class="flex gap-2 overflow-x-auto pb-1.5" id="presets-bar"></div>
+      </section>
+
+      <!-- ПАНЕЛЬ ОПТИМИЗАЦИИ ЦЕН МАГАЗИНОВ -->
+      <section class="flex items-center justify-between bg-emerald-950/30 border border-emerald-500/20 px-3.5 py-2.5 rounded-xl">
+        <div class="text-xs">
+          <span class="text-emerald-300 font-semibold">Сравнение цен магазинов</span>
+          <p class="text-[11px] text-slate-400" id="savings-hint">Выбирайте поставщика прямо в карточке товара</p>
+        </div>
+        <button onclick="optimizeBestPrices()" class="shrink-0 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 px-3 py-1.5 rounded-lg text-xs font-bold active:scale-95 transition">
+          📉 Мин. цены
+        </button>
+      </section>
+
+      <!-- СПИСОК ПОЗИЦИЙ СМЕТЫ -->
+      <section class="space-y-2.5" id="items-list"></section>
+
+    </div>
+
+    <!-- ВКЛАДКА 2: ПОЛНЫЙ КАТАЛОГ МАГАЗИНОВ -->
+    <div id="view-catalog" class="hidden space-y-3">
+      <div class="glass-card p-3 rounded-2xl">
+        <div class="text-xs text-slate-400 mb-2">Фильтр по категориям базы РФ:</div>
+        <div class="flex gap-1.5 overflow-x-auto pb-1" id="catalog-filters">
+          <button onclick="renderCatalog('all')" class="px-3 py-1.5 rounded-lg bg-blue-600 text-xs font-semibold">Все</button>
+          <button onclick="renderCatalog('Автоматика')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs">Автоматика</button>
+          <button onclick="renderCatalog('Кабель')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs">Кабель и трасса</button>
+          <button onclick="renderCatalog('Щиты и боксы')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs">Щиты</button>
+          <button onclick="renderCatalog('Работы')" class="px-3 py-1.5 rounded-lg bg-slate-800 text-xs">Работы</button>
+        </div>
+      </div>
+      <div id="catalog-grid" class="space-y-2"></div>
+    </div>
+
+    <!-- ВКЛАДКА 3: РЕКВИЗИТЫ ОБЪЕКТА И НАЦЕНКИ -->
+    <div id="view-details" class="hidden space-y-3">
+      <section class="glass-card p-4 rounded-2xl space-y-3">
+        <h3 class="text-sm font-bold text-cyan-400">Данные для шапки PDF</h3>
+        <div class="space-y-2.5">
+          <input id="master_name" type="text" placeholder="Ваше ФИО / Бригада / ИП" oninput="saveCurrentDraft()" class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm w-full outline-none focus:border-cyan-400">
+          <input id="master_phone" type="tel" placeholder="Ваш телефон (+7...)" oninput="saveCurrentDraft()" class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm w-full outline-none focus:border-cyan-400">
+          <input id="client_name" type="text" placeholder="ФИО Заказчика" oninput="saveCurrentDraft()" class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm w-full outline-none focus:border-cyan-400">
+          <input id="object_address" type="text" placeholder="Адрес объекта (ЖК, ул., кв.)" oninput="saveCurrentDraft()" class="bg-slate-950 border border-white/10 rounded-xl px-3.5 py-2.5 text-sm w-full outline-none focus:border-cyan-400">
+        </div>
+        <div class="grid grid-cols-2 gap-2.5 pt-2">
+          <label class="text-xs text-slate-400 flex items-center justify-between bg-slate-950 px-3.5 py-2.5 rounded-xl border border-white/5">
+            <span>Расходники (%):</span>
+            <input id="consumables_percent" type="number" value="5" oninput="saveCurrentDraft(); recalc();" class="w-12 bg-transparent text-right font-bold text-white outline-none">
+          </label>
+          <label class="text-xs text-slate-400 flex items-center justify-between bg-slate-950 px-3.5 py-2.5 rounded-xl border border-white/5">
+            <span>Скидка (%):</span>
+            <input id="discount_percent" type="number" value="0" oninput="saveCurrentDraft(); recalc();" class="w-12 bg-transparent text-right font-bold text-emerald-400 outline-none">
+          </label>
+        </div>
+      </section>
+    </div>
 
   </main>
 
-  <!-- Нижние кнопки -->
-  <footer class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-3 z-20">
-    <div class="max-w-lg mx-auto grid grid-cols-2 gap-3">
-      <button onclick="generatePDF('supply')" class="bg-slate-700 active:scale-95 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-1">
-        🛒 В закупку (PDF)
+  <!-- БОКОВАЯ ШТОРКА: МОИ ЧЕРНОВИКИ И СМЕТЫ -->
+  <div id="drawer-backdrop" onclick="toggleDrawer(false)" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-40 hidden"></div>
+  <aside id="drawer" class="fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] glass z-50 p-4 flex flex-col justify-between border-r border-white/10 -translate-x-full transition-transform duration-200">
+    <div>
+      <div class="flex justify-between items-center pb-3 border-b border-white/10">
+        <h2 class="font-bold text-base text-cyan-400">📂 Мои черновики смет</h2>
+        <button onclick="toggleDrawer(false)" class="text-slate-400 text-lg px-2">✕</button>
+      </div>
+
+      <button onclick="createNewDraft()" class="w-full mt-3 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 font-bold text-xs shadow-lg shadow-blue-600/20 active:scale-95 transition">
+        + Создать новую смету
       </button>
-      <button onclick="generatePDF('client')" class="bg-emerald-600 active:scale-95 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1 shadow-lg shadow-emerald-900/50">
-        📄 Смета клиенту
-      </button>
+
+      <div id="drafts-list" class="mt-4 space-y-2 max-h-[65vh] overflow-y-auto pr-1"></div>
+    </div>
+
+    <div class="pt-3 border-t border-white/10 text-[11px] text-slate-500 text-center">
+      Все черновики надежно сохраняются в памяти телефона (Offline-First)
+    </div>
+  </aside>
+
+  <!-- НИЖНЯЯ ЛИПКАЯ ПАНЕЛЬ ДЕЙСТВИЙ -->
+  <footer class="fixed bottom-0 left-0 right-0 glass border-t border-white/10 p-3 z-30">
+    <div class="max-w-lg mx-auto">
+      <div class="flex justify-between text-[11px] text-slate-400 px-1 mb-2">
+        <span id="summary-works">Работы: 0 ₽</span>
+        <span id="summary-mats">Материалы: 0 ₽</span>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <button onclick="generatePDF('supply')" class="bg-slate-800/90 hover:bg-slate-700 border border-white/10 active:scale-95 py-3 rounded-xl font-semibold text-xs flex items-center justify-center gap-1.5 transition">
+          🛒 Закупка (без цен)
+        </button>
+        <button onclick="generatePDF('client')" class="bg-gradient-to-r from-emerald-600 to-teal-500 active:scale-95 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/30 transition">
+          📄 Смета клиенту (PDF)
+        </button>
+      </div>
     </div>
   </footer>
 
   <script>
-    const PRESETS = {
-      shield: [
-        {name: "Сборка и расключение щита (до 36 мод.)", category: "work", unit: "усл.", qty: 1, price: 12000},
-        {name: "Вводной автомат 2P 63A", category: "material", unit: "шт.", qty: 1, price: 850},
-        {name: "Реле напряжения 63А", category: "material", unit: "шт.", qty: 1, price: 3800},
-        {name: "УЗО 2P 40A 30mA", category: "material", unit: "шт.", qty: 3, price: 2900},
-        {name: "Автомат 1P 16A (розетки)", category: "material", unit: "шт.", qty: 8, price: 320},
-        {name: "Автомат 1P 10A (свет)", category: "material", unit: "шт.", qty: 4, price: 320}
-      ],
-      point: [
-        {name: "Бурение подрозетника в бетоне", category: "work", unit: "шт.", qty: 1, price: 450},
-        {name: "Вмазка подрозетника", category: "work", unit: "шт.", qty: 1, price: 200},
-        {name: "Подрозетник глубокий 68х60", category: "material", unit: "шт.", qty: 1, price: 45}
-      ],
-      cable: [
-        {name: "Прокладка кабеля до 3х2.5", category: "work", unit: "м.п.", qty: 50, price: 90},
-        {name: "Кабель ВВГнг(А)-LS 3х2.5", category: "material", unit: "м.п.", qty: 50, price: 115},
-        {name: "Гофра ПВХ d20 с протяжкой", category: "material", unit: "м.п.", qty: 50, price: 28}
-      ]
-    };
+    // --- БАЗА ДАННЫХ МАГАЗИНОВ РФ (ЭТМ, ВсеИнструменты, Лемана ПРО, Среднерыночные работы) ---
+    const STORE_DB = [
+      // Автоматика
+      { id: "m1", group: "Автоматика", name: "Автомат 1P 16A C (6kA) Systeme Electric (Schneider)", category: "material", unit: "шт.", stores: { "ЭТМ": 345, "ВсеИнструменты": 360, "Лемана ПРО": 338, "Электромонтаж": 395 } },
+      { id: "m2", group: "Автоматика", name: "Автомат 1P 10A C (6kA) Systeme Electric (Schneider)", category: "material", unit: "шт.", stores: { "ЭТМ": 345, "ВсеИнструменты": 355, "Лемана ПРО": 338, "Электромонтаж": 390 } },
+      { id: "m3", group: "Автоматика", name: "Автомат 1P 16A C CHINT NXB-63", category: "material", unit: "шт.", stores: { "ЭТМ": 215, "ВсеИнструменты": 230, "Лемана ПРО": 225 } },
+      { id: "m4", group: "Автоматика", name: "Вводной автомат 2P 63A C (6kA)", category: "material", unit: "шт.", stores: { "ЭТМ": 840, "ВсеИнструменты": 890, "Лемана ПРО": 820, "Электромонтаж": 950 } },
+      { id: "m5", group: "Автоматика", name: "УЗО (ВДТ) 2P 40A 30mA тип А (электромеханическое)", category: "material", unit: "шт.", stores: { "ЭТМ": 2850, "ВсеИнструменты": 2990, "Лемана ПРО": 2790, "Электромонтаж": 3200 } },
+      { id: "m6", group: "Автоматика", name: "Дифавтомат (АВДТ) 1P+N 16A 30mA тип А", category: "material", unit: "шт.", stores: { "ЭТМ": 2150, "ВсеИнструменты": 2290, "Лемана ПРО": 2100 } },
+      { id: "m7", group: "Автоматика", name: "Реле напряжения RBUZ (ZUBR) D2-63 с термозащитой", category: "material", unit: "шт.", stores: { "ЭТМ": 3890, "ВсеИнструменты": 3750, "Электромонтаж": 4100 } },
+      { id: "m8", group: "Автоматика", name: "Кросс-модуль 4х7 в корпусе на DIN-рейку", category: "material", unit: "шт.", stores: { "ЭТМ": 680, "ВсеИнструменты": 720, "Лемана ПРО": 650 } },
+      // Кабель и трасса
+      { id: "c1", group: "Кабель", name: "Кабель ВВГнг(А)-LS 3х2.5 ГОСТ (Конкорд / Севкабель)", category: "material", unit: "м.п.", stores: { "ЭТМ": 112, "ВсеИнструменты": 124, "Лемана ПРО": 118, "Электромонтаж": 129 } },
+      { id: "c2", group: "Кабель", name: "Кабель ВВГнг(А)-LS 3х1.5 ГОСТ (Конкорд / Севкабель)", category: "material", unit: "м.п.", stores: { "ЭТМ": 72, "ВсеИнструменты": 79, "Лемана ПРО": 75, "Электромонтаж": 84 } },
+      { id: "c3", group: "Кабель", name: "Кабель ВВГнг(А)-LS 3х6.0 ГОСТ (ввод / плита)", category: "material", unit: "м.п.", stores: { "ЭТМ": 285, "ВсеИнструменты": 310, "Лемана ПРО": 295 } },
+      { id: "c4", group: "Кабель", name: "Провод ПуГВ 1х6.0 мм² (для расключения щита)", category: "material", unit: "м.п.", stores: { "ЭТМ": 64, "ВсеИнструменты": 70, "Электромонтаж": 75 } },
+      { id: "c5", group: "Кабель", name: "Гофра ПВХ d20 тяжелая серая с протяжкой Промрукав", category: "material", unit: "м.п.", stores: { "ЭТМ": 26, "ВсеИнструменты": 29, "Лемана ПРО": 25 } },
+      { id: "c6", group: "Кабель", name: "Подрозетник глубокий 68х60 Kopos / Schneider", category: "material", unit: "шт.", stores: { "ЭТМ": 42, "ВсеИнструменты": 48, "Лемана ПРО": 39 } },
+      // Щиты и боксы
+      { id: "b1", group: "Щиты и боксы", name: "Щит встраиваемый 36 модулей (3 ряда) с дверцей", category: "material", unit: "шт.", stores: { "ЭТМ": 4650, "ВсеИнструменты": 4890, "Лемана ПРО": 4490 } },
+      { id: "b2", group: "Щиты и боксы", name: "Щит встраиваемый 54 модуля (4 ряда) металлический", category: "material", unit: "шт.", stores: { "ЭТМ": 8900, "ВсеИнструменты": 9300, "Лемана ПРО": 8600 } },
+      // Работы
+      { id: "w1", group: "Работы", name: "Сборка и расключение электрощита (до 36 модулей)", category: "work", unit: "усл.", stores: { "Мой прайс": 12000, "Средняя по РФ": 10000, "Москва/СПб": 16000 } },
+      { id: "w2", group: "Работы", name: "Бурение лунки под подрозетник в бетоне (алмазное)", category: "work", unit: "шт.", stores: { "Мой прайс": 450, "Средняя по РФ": 400, "Москва/СПб": 600 } },
+      { id: "w3", group: "Работы", name: "Вмазка подрозетника и вывод кабеля", category: "work", unit: "шт.", stores: { "Мой прайс": 200, "Средняя по РФ": 180, "Москва/СПб": 300 } },
+      { id: "w4", group: "Работы", name: "Прокладка кабеля в гофре по потолку/стенам", category: "work", unit: "м.п.", stores: { "Мой прайс": 100, "Средняя по РФ": 90, "Москва/СПб": 140 } },
+      { id: "w5", group: "Работы", name: "Штробление бетона под кабель (с пылесосом)", category: "work", unit: "м.п.", stores: { "Мой прайс": 350, "Средняя по РФ": 300, "Москва/СПб": 500 } }
+    ];
 
-    let items = JSON.parse(localStorage.getItem("smeta_items") || "[]");
+    const DEFAULT_PRESETS = [
+      { id: "shield", title: "⚡ Щит 36 мод.", items: [
+        { dbId: "w1", qty: 1 }, { dbId: "b1", qty: 1 }, { dbId: "m4", qty: 1 },
+        { dbId: "m7", qty: 1 }, { dbId: "m5", qty: 3 }, { dbId: "m1", qty: 8 }, { dbId: "m2", qty: 4 }
+      ]},
+      { id: "point", title: "🛠 Точка в бетоне", items: [
+        { dbId: "w2", qty: 1 }, { dbId: "w3", qty: 1 }, { dbId: "c6", qty: 1 }
+      ]},
+      { id: "cable", title: "🔌 Трасса 100м", items: [
+        { dbId: "w4", qty: 100 }, { dbId: "c1", qty: 60 }, { dbId: "c2", qty: 40 }, { dbId: "c5", qty: 100 }
+      ]}
+    ];
 
+    // --- СИСТЕМА ЧЕРНОВИКОВ И СОСТОЯНИЯ ---
+    let drafts = JSON.parse(localStorage.getItem("smeta_pro_drafts") || "null");
+    let currentDraftId = localStorage.getItem("smeta_pro_current_id");
+    let customPresets = JSON.parse(localStorage.getItem("smeta_pro_custom_presets") || "[]");
+
+    if (!drafts || drafts.length === 0) {
+      const firstId = "draft_" + Date.now();
+      drafts = [{
+        id: firstId,
+        title: "Квартира №1 (Черновик)",
+        updatedAt: new Date().toLocaleDateString("ru-RU"),
+        master_name: "", master_phone: "", client_name: "", object_address: "",
+        consumables_percent: 5, discount_percent: 0,
+        items: []
+      }];
+      currentDraftId = firstId;
+      saveAllDrafts();
+    }
+
+    function getCurrentDraft() {
+      return drafts.find(d => d.id === currentDraftId) || drafts[0];
+    }
+
+    function saveAllDrafts() {
+      localStorage.setItem("smeta_pro_drafts", JSON.stringify(drafts));
+      localStorage.setItem("smeta_pro_current_id", currentDraftId);
+    }
+
+    function createItemFromDB(dbItem, qty = 1, preferredStore = null) {
+      const storeNames = Object.keys(dbItem.stores);
+      const selectedStore = preferredStore && dbItem.stores[preferredStore] ? preferredStore : storeNames[0];
+      return {
+        name: dbItem.name,
+        category: dbItem.category,
+        unit: dbItem.unit,
+        qty: qty,
+        price: dbItem.stores[selectedStore],
+        selectedStore: selectedStore,
+        stores: { ...dbItem.stores }
+      };
+    }
+
+    // --- ИНИЦИАЛИЗАЦИЯ ---
     function init() {
-      const meta = JSON.parse(localStorage.getItem("smeta_meta") || "{}");
-      if(meta.master_name) document.getElementById("master_name").value = meta.master_name;
-      if(meta.master_phone) document.getElementById("master_phone").value = meta.master_phone;
-      if(meta.client_name) document.getElementById("client_name").value = meta.client_name;
-      if(meta.object_address) document.getElementById("object_address").value = meta.object_address;
+      loadDraftToUI();
+      renderPresetsBar();
+      renderCatalog("all");
+      renderDraftsDrawer();
+    }
+
+    function loadDraftToUI() {
+      const d = getCurrentDraft();
+      document.getElementById("current-draft-title").innerText = d.title;
+      document.getElementById("master_name").value = d.master_name || "";
+      document.getElementById("master_phone").value = d.master_phone || "";
+      document.getElementById("client_name").value = d.client_name || "";
+      document.getElementById("object_address").value = d.object_address || "";
+      document.getElementById("consumables_percent").value = d.consumables_percent ?? 5;
+      document.getElementById("discount_percent").value = d.discount_percent ?? 0;
       renderItems();
     }
 
-    function saveMeta() {
-      localStorage.setItem("smeta_meta", JSON.stringify({
-        master_name: document.getElementById("master_name").value,
-        master_phone: document.getElementById("master_phone").value,
-        client_name: document.getElementById("client_name").value,
-        object_address: document.getElementById("object_address").value
-      }));
+    function saveCurrentDraft() {
+      const d = getCurrentDraft();
+      d.master_name = document.getElementById("master_name").value;
+      d.master_phone = document.getElementById("master_phone").value;
+      d.client_name = document.getElementById("client_name").value;
+      d.object_address = document.getElementById("object_address").value;
+      if (d.object_address.trim()) d.title = d.object_address.trim();
+      d.consumables_percent = parseFloat(document.getElementById("consumables_percent").value || 0);
+      d.discount_percent = parseFloat(document.getElementById("discount_percent").value || 0);
+      d.updatedAt = new Date().toLocaleDateString("ru-RU");
+      document.getElementById("current-draft-title").innerText = d.title;
+      saveAllDrafts();
+      renderDraftsDrawer();
     }
 
-    function applyPreset(key) {
-      PRESETS[key].forEach(i => items.push({...i}));
-      saveAndRender();
+    // --- УПРАВЛЕНИЕ ЧЕРНОВИКАМИ (ШТОРКА) ---
+    function toggleDrawer(open) {
+      const drawer = document.getElementById("drawer");
+      const backdrop = document.getElementById("drawer-backdrop");
+      if (open) {
+        backdrop.classList.remove("hidden");
+        drawer.classList.remove("-translate-x-full");
+        renderDraftsDrawer();
+      } else {
+        backdrop.classList.add("hidden");
+        drawer.classList.add("-translate-x-full");
+      }
     }
 
-    function clearAll() {
-      if(confirm("Очистить текущую смету?")) { items = []; saveAndRender(); }
+    function createNewDraft() {
+      const title = prompt("Название новой сметы / объекта:", `Объект №${drafts.length + 1}`);
+      if (!title) return;
+      const prev = getCurrentDraft();
+      const newId = "draft_" + Date.now();
+      drafts.unshift({
+        id: newId,
+        title: title,
+        updatedAt: new Date().toLocaleDateString("ru-RU"),
+        master_name: prev.master_name,
+        master_phone: prev.master_phone,
+        client_name: "",
+        object_address: title,
+        consumables_percent: 5,
+        discount_percent: 0,
+        items: []
+      });
+      currentDraftId = newId;
+      saveAllDrafts();
+      loadDraftToUI();
+      toggleDrawer(false);
     }
 
+    function selectDraft(id) {
+      currentDraftId = id;
+      saveAllDrafts();
+      loadDraftToUI();
+      toggleDrawer(false);
+    }
+
+    function deleteDraft(id, e) {
+      e.stopPropagation();
+      if (drafts.length <= 1) return alert("Нельзя удалить единственную смету!");
+      if (!confirm("Удалить этот черновик?")) return;
+      drafts = drafts.filter(d => d.id !== id);
+      if (currentDraftId === id) currentDraftId = drafts[0].id;
+      saveAllDrafts();
+      loadDraftToUI();
+      renderDraftsDrawer();
+    }
+
+    function renderDraftsDrawer() {
+      const list = document.getElementById("drafts-list");
+      list.innerHTML = drafts.map(d => {
+        const active = d.id === currentDraftId;
+        return `
+          <div onclick="selectDraft('${d.id}')" class="p-3 rounded-xl border cursor-pointer flex justify-between items-center transition ${active ? 'bg-blue-600/20 border-cyan-400/50' : 'bg-slate-900/70 border-white/5 hover:border-white/20'}">
+            <div class="min-w-0 pr-2">
+              <div class="text-xs font-bold truncate ${active ? 'text-cyan-300' : 'text-slate-200'}">${d.title}</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">${d.items.length} поз. • ${d.updatedAt}</div>
+            </div>
+            <button onclick="deleteDraft('${d.id}', event)" class="text-slate-500 hover:text-rose-400 px-1.5 py-1 text-xs">🗑</button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    // --- ШАБЛОНЫ И КАСТОМНЫЕ УЗЛЫ ---
+    function renderPresetsBar() {
+      const bar = document.getElementById("presets-bar");
+      const defBtns = DEFAULT_PRESETS.map(p => `
+        <button onclick="applyPreset('${p.id}')" class="shrink-0 glass-card px-3 py-2 rounded-xl text-xs font-semibold text-slate-200 active:scale-95 transition hover:border-cyan-400/40">
+          ${p.title}
+        </button>
+      `).join("");
+
+      const customBtns = customPresets.map((cp, idx) => `
+        <button onclick="applyCustomPreset(${idx})" class="shrink-0 bg-cyan-950/50 border border-cyan-500/30 px-3 py-2 rounded-xl text-xs font-semibold text-cyan-300 active:scale-95 transition">
+          ⭐ ${cp.title}
+        </button>
+      `).join("");
+
+      bar.innerHTML = defBtns + customBtns;
+    }
+
+    function applyPreset(id) {
+      const preset = DEFAULT_PRESETS.find(p => p.id === id);
+      if (!preset) return;
+      const d = getCurrentDraft();
+      preset.items.forEach(pi => {
+        const dbItem = STORE_DB.find(x => x.id === pi.dbId);
+        if (dbItem) d.items.push(createItemFromDB(dbItem, pi.qty));
+      });
+      saveAllDrafts();
+      renderItems();
+    }
+
+    function saveCurrentAsTemplate() {
+      const d = getCurrentDraft();
+      if (d.items.length === 0) return alert("Сначала добавьте позиции в смету!");
+      const title = prompt("Название вашего шаблона (например: Щит 3-комн):", "Мой шаблон");
+      if (!title) return;
+      customPresets.push({ title, items: JSON.parse(JSON.stringify(d.items)) });
+      localStorage.setItem("smeta_pro_custom_presets", JSON.stringify(customPresets));
+      renderPresetsBar();
+    }
+
+    function applyCustomPreset(idx) {
+      const cp = customPresets[idx];
+      if (!cp) return;
+      const d = getCurrentDraft();
+      cp.items.forEach(i => d.items.push(JSON.parse(JSON.stringify(i))));
+      saveAllDrafts();
+      renderItems();
+    }
+
+    // --- ЖИВОЙ ПОИСК ПО МАГАЗИНАМ И АВТОДОПОЛНЕНИЕ ---
+    function handleSearchInput(query) {
+      const box = document.getElementById("search-dropdown");
+      const q = query.trim().toLowerCase();
+      if (q.length < 2) {
+        box.classList.add("hidden");
+        return;
+      }
+      const matches = STORE_DB.filter(x => x.name.toLowerCase().includes(q) || x.group.toLowerCase().includes(q));
+      if (matches.length === 0) {
+        box.classList.add("hidden");
+        return;
+      }
+      box.classList.remove("hidden");
+      box.innerHTML = matches.map(m => {
+        const storeEntries = Object.entries(m.stores);
+        const minEntry = storeEntries.reduce((a, b) => a[1] < b[1] ? a : b);
+        const badges = storeEntries.map(([st, pr]) => `<span class="text-[10px] px-1.5 py-0.5 rounded bg-slate-900 border border-slate-700 text-slate-300">${st}: <b>${pr}₽</b></span>`).join(" ");
+        return `
+          <div onclick="addFromCatalog('${m.id}')" class="p-2.5 hover:bg-slate-900 cursor-pointer transition">
+            <div class="flex justify-between items-start gap-2">
+              <span class="text-xs font-semibold text-slate-100">${m.name}</span>
+              <span class="shrink-0 text-xs font-bold text-emerald-400">от ${minEntry[1]} ₽</span>
+            </div>
+            <div class="flex flex-wrap gap-1 mt-1.5">${badges}</div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function addFromCatalog(dbId) {
+      const dbItem = STORE_DB.find(x => x.id === dbId);
+      if (!dbItem) return;
+      const d = getCurrentDraft();
+      d.items.unshift(createItemFromDB(dbItem, 1));
+      document.getElementById("smart-search").value = "";
+      document.getElementById("search-dropdown").classList.add("hidden");
+      saveAllDrafts();
+      renderItems();
+    }
+
+    // --- ПАРСЕР БЫСТРОЙ СТРОКИ ---
     function parseQuickLine() {
-      const input = document.getElementById("quick-input");
+      const input = document.getElementById("smart-search");
       const text = input.value.trim();
       if (!text) return;
+
       const match = text.match(/^(.*?)\s+(\d+(?:[.,]\d+)?)\s*(шт|м|мп|м\.п\.|усл|компл|точк[аи])?\s*(?:по|х|x|\*)?\s*(\d+(?:[.,]\d+)?)$/i);
+      const d = getCurrentDraft();
+
       if (match) {
         const name = match[1].trim();
         const qty = parseFloat(match[2].replace(",", "."));
@@ -150,76 +501,210 @@
         const price = parseFloat(match[4].replace(",", "."));
         const workWords = ["монтаж", "сборка", "установка", "прокладка", "штроб", "бурение", "расключение", "вмазка"];
         const category = workWords.some(w => name.toLowerCase().includes(w)) ? "work" : "material";
-        items.push({name, category, unit, qty, price});
+
+        d.items.unshift({
+          name, category, unit, qty, price,
+          selectedStore: "Своя цена",
+          stores: { "Своя цена": price, "ЭТМ (~)": Math.round(price * 0.96), "ВсеИнструменты (~)": Math.round(price * 1.03) }
+        });
         input.value = "";
-        saveAndRender();
+        document.getElementById("search-dropdown").classList.add("hidden");
+        saveAllDrafts();
+        renderItems();
       } else {
-        alert("Напишите в формате: Название Кол-во Цена\nНапример: Автомат 16А 10 шт 350");
+        // Если ввели просто название без цены — ищем совпадение в базе магазинов
+        const found = STORE_DB.find(x => x.name.toLowerCase().includes(text.toLowerCase()));
+        if (found) {
+          addFromCatalog(found.id);
+        } else {
+          alert("Выберите товар из выпадающего списка или напишите в формате:\nНазвание Кол-во Цена\n(Например: Автомат 16А 8 шт 350)");
+        }
       }
     }
 
-    function changeQty(idx, delta) {
-      items[idx].qty = Math.max(0, Number((items[idx].qty + delta).toFixed(2)));
-      if (items[idx].qty === 0) items.splice(idx, 1);
-      saveAndRender();
-    }
-
-    function saveAndRender() {
-      localStorage.setItem("smeta_items", JSON.stringify(items));
+    // --- СМЕНА МАГАЗИНА И ОПТИМИЗАЦИЯ ЦЕН ---
+    function changeItemStore(idx, storeName) {
+      const d = getCurrentDraft();
+      const item = d.items[idx];
+      if (storeName === "__custom__") {
+        const customPrice = prompt("Введите свою цену за единицу (₽):", item.price);
+        if (customPrice !== null && !isNaN(parseFloat(customPrice))) {
+          const val = parseFloat(customPrice);
+          item.stores["Своя цена"] = val;
+          item.selectedStore = "Своя цена";
+          item.price = val;
+        }
+      } else if (item.stores && item.stores[storeName] !== undefined) {
+        item.selectedStore = storeName;
+        item.price = item.stores[storeName];
+      }
+      saveAllDrafts();
       renderItems();
     }
 
+    function optimizeBestPrices() {
+      const d = getCurrentDraft();
+      if (d.items.length === 0) return;
+      let saved = 0;
+      d.items.forEach(item => {
+        if (item.category === "material" && item.stores) {
+          const entries = Object.entries(item.stores);
+          if (entries.length > 1) {
+            const minEntry = entries.reduce((a, b) => a[1] < b[1] ? a : b);
+            saved += (item.price - minEntry[1]) * item.qty;
+            item.selectedStore = minEntry[0];
+            item.price = minEntry[1];
+          }
+        }
+      });
+      saveAllDrafts();
+      renderItems();
+      const hint = document.getElementById("savings-hint");
+      hint.innerText = saved > 0 ? `Выбраны минимальные цены! Экономия: ${Math.round(saved).toLocaleString('ru-RU')} ₽` : `У вас уже стоят самые выгодные цены по базам!`;
+    }
+
+    function changeQty(idx, delta) {
+      const d = getCurrentDraft();
+      d.items[idx].qty = Math.max(0, Number((d.items[idx].qty + delta).toFixed(2)));
+      if (d.items[idx].qty === 0) d.items.splice(idx, 1);
+      saveAllDrafts();
+      renderItems();
+    }
+
+    function clearAll() {
+      const d = getCurrentDraft();
+      if (confirm("Очистить позиции текущей сметы?")) {
+        d.items = [];
+        saveAllDrafts();
+        renderItems();
+      }
+    }
+
+    // --- ОТРИСОВКА СПИСКА ПОЗИЦИЙ С ВЫПАДАЮЩИМ СПИСКОМ МАГАЗИНОВ ---
     function renderItems() {
+      const d = getCurrentDraft();
       const list = document.getElementById("items-list");
-      if (items.length === 0) {
-        list.innerHTML = `<div class="text-center text-slate-500 py-8 text-sm">Смета пуста. Нажмите на шаблон выше или введите строку.</div>`;
+      if (d.items.length === 0) {
+        list.innerHTML = `
+          <div class="glass-card rounded-2xl p-8 text-center space-y-2">
+            <div class="text-2xl">⚡</div>
+            <div class="text-sm font-semibold text-slate-300">Смета пока пуста</div>
+            <div class="text-xs text-slate-500">Нажмите на готовый узел выше или начните вводить название материала в поиск по магазинам</div>
+          </div>`;
         recalc();
         return;
       }
-      list.innerHTML = items.map((item, idx) => `
-        <div class="bg-slate-800 p-3 rounded-xl border border-slate-700 flex justify-between items-center gap-2">
-          <div class="flex-1 min-w-0">
-            <span class="text-[10px] uppercase px-1.5 py-0.5 rounded font-bold ${item.category === 'work' ? 'bg-amber-500/20 text-amber-300' : 'bg-blue-500/20 text-blue-300'}">
-              ${item.category === 'work' ? 'Работа' : 'Материал'}
-            </span>
-            <div class="text-sm font-medium truncate mt-1">${item.name}</div>
-            <div class="text-xs text-slate-400">${item.price} ₽ / ${item.unit} • <b class="text-slate-200">${(item.qty * item.price).toLocaleString('ru-RU')} ₽</b></div>
+
+      list.innerHTML = d.items.map((item, idx) => {
+        const storesObj = item.stores || { "База": item.price };
+        const optionsHtml = Object.entries(storesObj).map(([stName, stPrice]) => `
+          <option value="${stName}" ${item.selectedStore === stName ? 'selected' : ''} class="bg-slate-900 text-white">
+            ${stName}: ${stPrice} ₽
+          </option>
+        `).join("") + `<option value="__custom__" class="bg-slate-900 text-cyan-400">✏️ Своя цена...</option>`;
+
+        return `
+        <div class="glass-card p-3.5 rounded-2xl flex flex-col gap-2.5 transition">
+          <div class="flex justify-between items-start gap-2">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] uppercase px-2 py-0.5 rounded-md font-bold tracking-wide ${item.category === 'work' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'}">
+                  ${item.category === 'work' ? 'Работа' : 'Материал'}
+                </span>
+                <span class="text-xs font-bold text-emerald-400 ml-auto">${(item.qty * item.price).toLocaleString('ru-RU')} ₽</span>
+              </div>
+              <div class="text-sm font-semibold text-slate-100 mt-1.5 leading-snug">${item.name}</div>
+            </div>
           </div>
-          <div class="flex items-center gap-2 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">
-            <button onclick="changeQty(${idx}, -1)" class="w-7 h-7 rounded bg-slate-800 text-slate-300 font-bold">-</button>
-            <span class="text-sm font-bold w-8 text-center">${item.qty}</span>
-            <button onclick="changeQty(${idx}, 1)" class="w-7 h-7 rounded bg-slate-800 text-blue-400 font-bold">+</button>
+
+          <div class="flex justify-between items-center gap-2 pt-1 border-t border-white/5">
+            <!-- Выпадающий список магазинов с ценами -->
+            <div class="flex items-center gap-1.5 flex-1 min-w-0">
+              <span class="text-[11px] text-slate-400 shrink-0">Прайс:</span>
+              <select onchange="changeItemStore(${idx}, this.value)" class="bg-slate-950/90 border border-slate-700 text-xs font-medium text-cyan-300 rounded-lg px-2 py-1.5 outline-none max-w-full truncate">
+                ${optionsHtml}
+              </select>
+            </div>
+
+            <!-- Кнопки количества -->
+            <div class="flex items-center gap-1.5 bg-slate-950/90 px-2 py-1 rounded-xl border border-white/10 shrink-0">
+              <button onclick="changeQty(${idx}, -1)" class="w-6 h-6 rounded-lg bg-slate-800 text-slate-300 font-bold active:scale-90">-</button>
+              <span class="text-xs font-bold w-10 text-center">${item.qty} ${item.unit}</span>
+              <button onclick="changeQty(${idx}, 1)" class="w-6 h-6 rounded-lg bg-blue-600/30 text-cyan-300 font-bold active:scale-90">+</button>
+            </div>
           </div>
         </div>
-      `).join("");
+        `;
+      }).join("");
+
       recalc();
     }
 
+    // --- ОТРИСОВКА ВКЛАДКИ КАТАЛОГА МАГАЗИНОВ ---
+    function renderCatalog(groupFilter) {
+      const grid = document.getElementById("catalog-grid");
+      const filtered = groupFilter === 'all' ? STORE_DB : STORE_DB.filter(x => x.group === groupFilter);
+      grid.innerHTML = filtered.map(item => {
+        const badges = Object.entries(item.stores).map(([st, pr]) => `
+          <span class="text-[10px] px-2 py-0.5 rounded-md bg-slate-950 border border-white/10 text-slate-300">
+            ${st}: <b class="text-cyan-300">${pr} ₽</b>
+          </span>
+        `).join("");
+        return `
+          <div class="glass-card p-3 rounded-xl flex justify-between items-center gap-3">
+            <div class="space-y-1.5">
+              <div class="text-xs font-bold text-slate-100">${item.name}</div>
+              <div class="flex flex-wrap gap-1">${badges}</div>
+            </div>
+            <button onclick="addFromCatalog('${item.id}'); switchTab('editor');" class="shrink-0 bg-blue-600/30 border border-blue-400/40 text-cyan-300 px-3 py-2 rounded-xl text-xs font-bold active:scale-95">
+              + В смету
+            </button>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function switchTab(tab) {
+      ["editor", "catalog", "details"].forEach(t => {
+        document.getElementById(`view-${t}`).classList.toggle("hidden", t !== tab);
+        const btn = document.getElementById(`tab-${t}`);
+        if (t === tab) {
+          btn.className = "py-2 rounded-lg bg-slate-800 text-cyan-400 shadow";
+        } else {
+          btn.className = "py-2 rounded-lg text-slate-400";
+        }
+      });
+    }
+
     function recalc() {
+      const d = getCurrentDraft();
       let works = 0, mats = 0;
-      items.forEach(i => { if (i.category === "work") works += i.qty * i.price; else mats += i.qty * i.price; });
+      d.items.forEach(i => { if (i.category === "work") works += i.qty * i.price; else mats += i.qty * i.price; });
       const consPct = parseFloat(document.getElementById("consumables_percent").value || 0);
       const discPct = parseFloat(document.getElementById("discount_percent").value || 0);
       const total = works + mats + (mats * consPct / 100) - (works * discPct / 100);
+
       document.getElementById("grand-total").innerText = `${Math.round(total).toLocaleString('ru-RU')} ₽`;
-      document.getElementById("items-count").innerText = `${items.length} поз. (Раб: ${Math.round(works)} ₽ / Мат: ${Math.round(mats)} ₽)`;
-      return {works, mats, consPct, discPct, total};
+      document.getElementById("summary-works").innerText = `🛠 Работы: ${Math.round(works).toLocaleString('ru-RU')} ₽`;
+      document.getElementById("summary-mats").innerText = `📦 Материалы (${d.items.length} поз.): ${Math.round(mats).toLocaleString('ru-RU')} ₽`;
+      return { works, mats, consPct, discPct, total };
     }
 
-    // --- НОВЫЙ ЧИСТЫЙ ГЕНЕРАТОР PDF НА PDFMAKE ---
+    // --- ВЕКТОРНЫЙ ГЕНЕРАТОР PDF С УЧЕТОМ ВЫБРАННЫХ МАГАЗИНОВ ---
     function generatePDF(mode) {
-      if (items.length === 0) return alert("Добавьте позиции в смету!");
+      const d = getCurrentDraft();
+      if (d.items.length === 0) return alert("Добавьте позиции в смету!");
       const sums = recalc();
-      const client = document.getElementById("client_name").value || "Заказчик";
-      const address = document.getElementById("object_address").value || "Не указан";
-      const master = document.getElementById("master_name").value || "Частный мастер";
-      const phone = document.getElementById("master_phone").value || "";
+      const client = d.client_name || "Заказчик";
+      const address = d.object_address || d.title;
+      const master = d.master_name || "Инженер / Мастер";
+      const phone = d.master_phone || "";
       const date = new Date().toLocaleDateString("ru-RU");
 
-      const worksList = items.filter(i => i.category === "work");
-      const matsList = items.filter(i => i.category === "material");
+      const worksList = d.items.filter(i => i.category === "work");
+      const matsList = d.items.filter(i => i.category === "material");
 
-      function buildTable(arr, showPrice) {
+      function buildTable(arr, showPrice, showStore) {
         const body = [];
         if (showPrice) {
           body.push([
@@ -238,46 +723,40 @@
               { text: (item.qty * item.price).toLocaleString('ru-RU'), bold: true, alignment: 'right' }
             ]);
           });
-          return {
-            table: { headerRows: 1, widths: [22, '*', 55, 60, 70], body },
-            layout: 'lightHorizontalLines',
-            margin: [0, 4, 0, 12]
-          };
+          return { table: { headerRows: 1, widths: [22, '*', 55, 60, 70], body }, layout: 'lightHorizontalLines', margin: [0, 4, 0, 12] };
         } else {
           body.push([
             { text: '№', bold: true, fillColor: '#e2e8f0', alignment: 'center' },
-            { text: 'Наименование материала / оборудования', bold: true, fillColor: '#e2e8f0' },
+            { text: 'Наименование материала', bold: true, fillColor: '#e2e8f0' },
+            { text: 'Поставщик', bold: true, fillColor: '#e2e8f0', alignment: 'center' },
             { text: 'Кол-во', bold: true, fillColor: '#e2e8f0', alignment: 'center' }
           ]);
           arr.forEach((item, i) => {
             body.push([
               { text: String(i + 1), alignment: 'center' },
               { text: item.name },
+              { text: item.selectedStore || '—', alignment: 'center', color: '#475569' },
               { text: `${item.qty} ${item.unit}`, bold: true, alignment: 'center' }
             ]);
           });
-          return {
-            table: { headerRows: 1, widths: [25, '*', 80], body },
-            layout: 'lightHorizontalLines',
-            margin: [0, 4, 0, 12]
-          };
+          return { table: { headerRows: 1, widths: [22, '*', 90, 65], body }, layout: 'lightHorizontalLines', margin: [0, 4, 0, 12] };
         }
       }
 
       const content = [
-        { text: mode === 'supply' ? 'СПИСОК ЗАКУПКИ МАТЕРИАЛОВ' : 'СМЕТА НА ВЫПОЛНЕНИЕ РАБОТ', fontSize: 16, bold: true, alignment: 'center', margin: [0, 0, 0, 10] },
+        { text: mode === 'supply' ? 'ВЕДОМОСТЬ ЗАКУПКИ МАТЕРИАЛОВ' : 'СМЕТА НА ВЫПОЛНЕНИЕ РАБОТ', fontSize: 15, bold: true, alignment: 'center', margin: [0, 0, 0, 10] },
         { text: `Дата: ${date}   |   Объект: ${address}`, fontSize: 10, margin: [0, 0, 0, 3] },
         { text: `Заказчик: ${client}   |   Исполнитель: ${master} ${phone ? '(' + phone + ')' : ''}`, fontSize: 10, margin: [0, 0, 0, 14] }
       ];
 
       if (mode === 'client' && worksList.length > 0) {
         content.push({ text: '1. Стоимость работ', fontSize: 12, bold: true, margin: [0, 4, 0, 2] });
-        content.push(buildTable(worksList, true));
+        content.push(buildTable(worksList, true, false));
       }
 
       if (matsList.length > 0) {
-        content.push({ text: mode === 'client' ? '2. Материалы и оборудование' : 'Спецификация для закупки', fontSize: 12, bold: true, margin: [0, 4, 0, 2] });
-        content.push(buildTable(matsList, mode === 'client'));
+        content.push({ text: mode === 'client' ? '2. Материалы и оборудование' : 'Спецификация для закупки (с выбранными поставщиками)', fontSize: 12, bold: true, margin: [0, 4, 0, 2] });
+        content.push(buildTable(matsList, mode === 'client', mode === 'supply'));
       }
 
       if (mode === 'client') {
@@ -289,16 +768,10 @@
         content.push({ text: `ИТОГО К ОПЛАТЕ: ${Math.round(sums.total).toLocaleString('ru-RU')} ₽`, alignment: 'right', fontSize: 14, bold: true, margin: [0, 6, 0, 15] });
       }
 
-      content.push({ text: 'Сформировано в мини-приложении «СметаМАХ» — быстрый расчет смет для мастеров', alignment: 'center', fontSize: 8, color: '#64748b', margin: [0, 20, 0, 0] });
+      content.push({ text: 'Сформировано в инженерном терминале «СметаМАХ PRO»', alignment: 'center', fontSize: 8, color: '#64748b', margin: [0, 20, 0, 0] });
 
-      const docDefinition = {
-        pageSize: 'A4',
-        pageMargins: [30, 30, 30, 30],
-        content: content,
-        defaultStyle: { fontSize: 9 }
-      };
-
-      pdfMake.createPdf(docDefinition).download(mode === 'supply' ? 'Zakupka.pdf' : 'Smeta.pdf');
+      pdfMake.createPdf({ pageSize: 'A4', pageMargins: [30, 30, 30, 30], content, defaultStyle: { fontSize: 9 } })
+             .download(mode === 'supply' ? 'Zakupka.pdf' : 'Smeta.pdf');
     }
 
     init();

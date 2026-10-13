@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>СметаМАХ — Быстрые сметы</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Библиотека для создания PDF прямо на телефоне -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <!-- Настоящий векторный генератор PDF с поддержкой кириллицы (без скриншотов!) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
 </head>
 <body class="bg-slate-900 text-slate-100 min-h-screen pb-32 font-sans select-none">
 
@@ -73,11 +74,6 @@
     <section class="space-y-2" id="items-list"></section>
 
   </main>
-
-  <!-- Скрытый печатный бланк для красивого PDF -->
-  <div class="hidden">
-    <div id="pdf-template" class="p-6 bg-white text-black font-sans text-xs"></div>
-  </div>
 
   <!-- Нижние кнопки -->
   <footer class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 p-3 z-20">
@@ -187,7 +183,7 @@
               ${item.category === 'work' ? 'Работа' : 'Материал'}
             </span>
             <div class="text-sm font-medium truncate mt-1">${item.name}</div>
-            <div class="text-xs text-slate-400">${item.price} ₽ / ${item.unit} • <b class="text-slate-200">${(item.qty * item.price).toLocaleString()} ₽</b></div>
+            <div class="text-xs text-slate-400">${item.price} ₽ / ${item.unit} • <b class="text-slate-200">${(item.qty * item.price).toLocaleString('ru-RU')} ₽</b></div>
           </div>
           <div class="flex items-center gap-2 bg-slate-900 px-2 py-1 rounded-lg border border-slate-700">
             <button onclick="changeQty(${idx}, -1)" class="w-7 h-7 rounded bg-slate-800 text-slate-300 font-bold">-</button>
@@ -205,11 +201,12 @@
       const consPct = parseFloat(document.getElementById("consumables_percent").value || 0);
       const discPct = parseFloat(document.getElementById("discount_percent").value || 0);
       const total = works + mats + (mats * consPct / 100) - (works * discPct / 100);
-      document.getElementById("grand-total").innerText = `${Math.round(total).toLocaleString()} ₽`;
+      document.getElementById("grand-total").innerText = `${Math.round(total).toLocaleString('ru-RU')} ₽`;
       document.getElementById("items-count").innerText = `${items.length} поз. (Раб: ${Math.round(works)} ₽ / Мат: ${Math.round(mats)} ₽)`;
       return {works, mats, consPct, discPct, total};
     }
 
+    // --- НОВЫЙ ЧИСТЫЙ ГЕНЕРАТОР PDF НА PDFMAKE ---
     function generatePDF(mode) {
       if (items.length === 0) return alert("Добавьте позиции в смету!");
       const sums = recalc();
@@ -222,67 +219,86 @@
       const worksList = items.filter(i => i.category === "work");
       const matsList = items.filter(i => i.category === "material");
 
-      const makeRows = (arr, showPrice) => arr.map((item, i) => `
-        <tr style="border-bottom: 1px solid #cbd5e1;">
-          <td style="padding: 6px; text-align:center;">${i+1}</td>
-          <td style="padding: 6px;">${item.name}</td>
-          <td style="padding: 6px; text-align:center;">${item.qty} ${item.unit}</td>
-          ${showPrice ? `<td style="padding: 6px; text-align:right;">${item.price.toLocaleString()} ₽</td>
-          <td style="padding: 6px; text-align:right; font-weight:bold;">${(item.qty*item.price).toLocaleString()} ₽</td>` : ''}
-        </tr>
-      `).join("");
+      function buildTable(arr, showPrice) {
+        const body = [];
+        if (showPrice) {
+          body.push([
+            { text: '№', bold: true, fillColor: '#e2e8f0', alignment: 'center' },
+            { text: 'Наименование', bold: true, fillColor: '#e2e8f0' },
+            { text: 'Кол-во', bold: true, fillColor: '#e2e8f0', alignment: 'center' },
+            { text: 'Цена, ₽', bold: true, fillColor: '#e2e8f0', alignment: 'right' },
+            { text: 'Сумма, ₽', bold: true, fillColor: '#e2e8f0', alignment: 'right' }
+          ]);
+          arr.forEach((item, i) => {
+            body.push([
+              { text: String(i + 1), alignment: 'center' },
+              { text: item.name },
+              { text: `${item.qty} ${item.unit}`, alignment: 'center' },
+              { text: item.price.toLocaleString('ru-RU'), alignment: 'right' },
+              { text: (item.qty * item.price).toLocaleString('ru-RU'), bold: true, alignment: 'right' }
+            ]);
+          });
+          return {
+            table: { headerRows: 1, widths: [22, '*', 55, 60, 70], body },
+            layout: 'lightHorizontalLines',
+            margin: [0, 4, 0, 12]
+          };
+        } else {
+          body.push([
+            { text: '№', bold: true, fillColor: '#e2e8f0', alignment: 'center' },
+            { text: 'Наименование материала / оборудования', bold: true, fillColor: '#e2e8f0' },
+            { text: 'Кол-во', bold: true, fillColor: '#e2e8f0', alignment: 'center' }
+          ]);
+          arr.forEach((item, i) => {
+            body.push([
+              { text: String(i + 1), alignment: 'center' },
+              { text: item.name },
+              { text: `${item.qty} ${item.unit}`, bold: true, alignment: 'center' }
+            ]);
+          });
+          return {
+            table: { headerRows: 1, widths: [25, '*', 80], body },
+            layout: 'lightHorizontalLines',
+            margin: [0, 4, 0, 12]
+          };
+        }
+      }
 
-      const box = document.getElementById("pdf-template");
-      box.innerHTML = `
-        <div style="font-family: sans-serif; color: #0f172a;">
-          <h2 style="font-size: 18px; font-weight: bold; text-align: center; margin-bottom: 8px;">
-            ${mode === 'supply' ? 'СПИСОК ЗАКУПКИ МАТЕРИАЛОВ' : 'СМЕТА НА ВЫПОЛНЕНИЕ РАБОТ'}
-          </h2>
-          <p style="font-size: 12px; margin-bottom: 4px;"><b>Дата:</b> ${date} | <b>Объект:</b> ${address}</p>
-          <p style="font-size: 12px; margin-bottom: 14px;"><b>Заказчик:</b> ${client} | <b>Исполнитель:</b> ${master} ${phone}</p>
+      const content = [
+        { text: mode === 'supply' ? 'СПИСОК ЗАКУПКИ МАТЕРИАЛОВ' : 'СМЕТА НА ВЫПОЛНЕНИЕ РАБОТ', fontSize: 16, bold: true, alignment: 'center', margin: [0, 0, 0, 10] },
+        { text: `Дата: ${date}   |   Объект: ${address}`, fontSize: 10, margin: [0, 0, 0, 3] },
+        { text: `Заказчик: ${client}   |   Исполнитель: ${master} ${phone ? '(' + phone + ')' : ''}`, fontSize: 10, margin: [0, 0, 0, 14] }
+      ];
 
-          ${mode === 'client' && worksList.length > 0 ? `
-            <h3 style="font-size: 14px; font-weight: bold; margin: 10px 0 4px;">1. Работы</h3>
-            <table style="width:100%; border-collapse: collapse; font-size: 11px; margin-bottom: 10px;">
-              <tr style="background:#e2e8f0; font-weight:bold;">
-                <th style="padding:6px; width:30px;">№</th><th style="padding:6px; text-align:left;">Наименование</th>
-                <th style="padding:6px; width:70px;">Кол-во</th><th style="padding:6px; width:70px; text-align:right;">Цена</th><th style="padding:6px; width:80px; text-align:right;">Сумма</th>
-              </tr>
-              ${makeRows(worksList, true)}
-            </table>
-          ` : ''}
+      if (mode === 'client' && worksList.length > 0) {
+        content.push({ text: '1. Стоимость работ', fontSize: 12, bold: true, margin: [0, 4, 0, 2] });
+        content.push(buildTable(worksList, true));
+      }
 
-          ${matsList.length > 0 ? `
-            <h3 style="font-size: 14px; font-weight: bold; margin: 10px 0 4px;">${mode === 'client' ? '2. Материалы и оборудование' : 'Спецификация материалов'}</h3>
-            <table style="width:100%; border-collapse: collapse; font-size: 11px; margin-bottom: 12px;">
-              <tr style="background:#e2e8f0; font-weight:bold;">
-                <th style="padding:6px; width:30px;">№</th><th style="padding:6px; text-align:left;">Наименование</th>
-                <th style="padding:6px; width:80px;">Кол-во</th>
-                ${mode === 'client' ? '<th style="padding:6px; width:70px; text-align:right;">Цена</th><th style="padding:6px; width:80px; text-align:right;">Сумма</th>' : ''}
-              </tr>
-              ${makeRows(matsList, mode === 'client')}
-            </table>
-          ` : ''}
+      if (matsList.length > 0) {
+        content.push({ text: mode === 'client' ? '2. Материалы и оборудование' : 'Спецификация для закупки', fontSize: 12, bold: true, margin: [0, 4, 0, 2] });
+        content.push(buildTable(matsList, mode === 'client'));
+      }
 
-          ${mode === 'client' ? `
-            <div style="text-align: right; font-size: 12px; margin-top: 10px;">
-              <div>Работы: <b>${Math.round(sums.works).toLocaleString()} ₽</b> | Материалы: <b>${Math.round(sums.mats).toLocaleString()} ₽</b></div>${sums.consPct > 0 ? `<div>Мелкие расходники (${sums.consPct}%): +${Math.round(sums.mats * sums.consPct / 100).toLocaleString()} ₽</div>` : ''}
-              ${sums.discPct > 0 ? `<div>Скидка на работы (${sums.discPct}%): -${Math.round(sums.works * sums.discPct / 100).toLocaleString()} ₽</div>` : ''}
-              <div style="font-size: 16px; font-weight: bold; margin-top: 6px;">ИТОГО К ОПЛАТЕ: ${Math.round(sums.total).toLocaleString()} ₽</div>
-            </div>
-          ` : ''}
-          <div style="margin-top: 25px; text-align: center; font-size: 10px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 8px;">
-            Сформировано в мини-приложении «СметаМАХ»
-          </div>
-        </div>
-      `;
+      if (mode === 'client') {
+        const consCost = Math.round(sums.mats * sums.consPct / 100);
+        const discCost = Math.round(sums.works * sums.discPct / 100);
+        content.push({ text: `Итого работы: ${Math.round(sums.works).toLocaleString('ru-RU')} ₽   |   Итого материалы: ${Math.round(sums.mats).toLocaleString('ru-RU')} ₽`, alignment: 'right', fontSize: 10, margin: [0, 6, 0, 2] });
+        if (sums.consPct > 0) content.push({ text: `Расходные материалы (${sums.consPct}%): +${consCost.toLocaleString('ru-RU')} ₽`, alignment: 'right', fontSize: 10, margin: [0, 0, 0, 2] });
+        if (sums.discPct > 0) content.push({ text: `Скидка на работы (${sums.discPct}%): -${discCost.toLocaleString('ru-RU')} ₽`, alignment: 'right', fontSize: 10, margin: [0, 0, 0, 2] });
+        content.push({ text: `ИТОГО К ОПЛАТЕ: ${Math.round(sums.total).toLocaleString('ru-RU')} ₽`, alignment: 'right', fontSize: 14, bold: true, margin: [0, 6, 0, 15] });
+      }
 
-      html2pdf().set({
-        margin: 10,
-        filename: mode === 'supply' ? 'Zakupka.pdf' : 'Smeta.pdf',
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      }).from(box).save();
+      content.push({ text: 'Сформировано в мини-приложении «СметаМАХ» — быстрый расчет смет для мастеров', alignment: 'center', fontSize: 8, color: '#64748b', margin: [0, 20, 0, 0] });
+
+      const docDefinition = {
+        pageSize: 'A4',
+        pageMargins: [30, 30, 30, 30],
+        content: content,
+        defaultStyle: { fontSize: 9 }
+      };
+
+      pdfMake.createPdf(docDefinition).download(mode === 'supply' ? 'Zakupka.pdf' : 'Smeta.pdf');
     }
 
     init();
